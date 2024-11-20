@@ -96,6 +96,10 @@ def predict_next_digit():
     return transition_matrix[category], last_digit
 
 # Flask API endpoint
+@app.route('/')
+def home():
+    return "Welcome to the Flask App!"
+    
 @app.route('/predict', methods=['GET'])
 def get_prediction():
     timestamp = request.args.get('timestamp')
