@@ -1,0 +1,7 @@
+Flask
+requests
+gspread
+google-auth
+pandas
+apscheduler
+python-dotenv
