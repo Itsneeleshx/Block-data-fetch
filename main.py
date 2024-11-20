@@ -7,24 +7,23 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from collections import defaultdict
 import pandas as pd
 from datetime import datetime
-import traceback
-from dateutil import parser
 
 app = Flask(__name__)
+
+# Write the Google credentials from environment variable to a file
+JSON_FILE_NAME = "credentials.json"
+google_credentials = os.getenv("GOOGLE_CREDENTIALS")
+if google_credentials:
+    with open(JSON_FILE_NAME, "w") as file:
+        file.write(google_credentials)
+else:
+    raise ValueError("GOOGLE_CREDENTIALS environment variable is not set")
 
 # Constants (from environment variables)
 API_URL = os.getenv("API_URL", "https://www.oklink.com/api/v5/explorer/block/block-fills")
 API_KEY = os.getenv("API_KEY")
 CHAIN_SHORT_NAME = os.getenv("CHAIN_SHORT_NAME", "TRON")
 SHEET_NAME = os.getenv("SHEET_NAME", "91club-api")
-JSON_URL = os.getenv("JSON_URL")
-JSON_FILE_NAME = "credentials.json"
-
-# Download credentials file
-response = requests.get(JSON_URL)
-if response.status_code == 200:
-    with open(JSON_FILE_NAME, "wb") as file:
-        file.write(response.content)
 
 # Authenticate Google Sheets
 credentials = Credentials.from_service_account_file(
@@ -89,55 +88,36 @@ def normalize_transitions():
 def predict_next_digit():
     data = pd.DataFrame(sheet.get_all_records())
     if 'Last Numerical Digit' not in data.columns or data.empty:
-        app.logger.error("Data missing or empty")
         return {"error": "Data missing or empty"}
-    
     last_digit = int(data['Last Numerical Digit'].iloc[-1])
     category = 'Small' if last_digit <= 4 else 'Big'
     transition_matrix = normalize_transitions()
     if category not in transition_matrix:
-        app.logger.error(f"No data for category '{category}'")
         return {"error": f"No data for category '{category}'"}
-    
     return transition_matrix[category], last_digit
 
 # Flask API endpoint
 @app.route('/')
 def home():
     return "Welcome to the Flask App!"
-    
+
 @app.route('/predict', methods=['GET'])
 def get_prediction():
     timestamp = request.args.get('timestamp')
-    try:
-        if timestamp:
-            # Attempt to parse the timestamp from the query parameter
-            timestamp = parser.parse(timestamp).strftime('%Y-%m-%d %H:%M:%S')
-        else:
-            timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Call the prediction function
-        predicted, last_digit = predict_next_digit()
-        
-        return jsonify({
-            "timestamp": timestamp,
-            "last_digit": last_digit,
-            "predictions": predicted
-        })
-    except Exception as e:
-        # Log the exception and stack trace
-        app.logger.error(f"Error occurred: {str(e)}")
-        traceback.print_exc()  # Prints the stack trace to the logs
-        return jsonify({
-            "error": f"An error occurred: {str(e)}"
-        })
+    if not timestamp:
+        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+    predicted, last_digit = predict_next_digit()
+    return jsonify({
+        "timestamp": timestamp,
+        "last_digit": last_digit,
+        "predictions": predicted
+    })
 
 # Scheduler to fetch data every minute at the 54th second
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_and_write_data, 'cron', second=54)
 scheduler.start()
 
-# Running the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render uses the PORT environment variable
     app.run(host="0.0.0.0", port=port)
