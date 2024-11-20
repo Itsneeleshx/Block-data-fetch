@@ -1,21 +1,21 @@
 from flask import Flask, request, jsonify
+import os
 import requests
 import gspread
 from google.oauth2.service_account import Credentials
 from apscheduler.schedulers.background import BackgroundScheduler
 from collections import defaultdict
 import pandas as pd
-import time
 from datetime import datetime
 
 app = Flask(__name__)
 
-# Constants
-API_URL = "https://www.oklink.com/api/v5/explorer/block/block-fills"
-API_KEY = "c8f46c6a-11f6-4d1a-bb23-cfa0f55dfa73"
-CHAIN_SHORT_NAME = "TRON"
-SHEET_NAME = "91club-api"
-JSON_URL = "https://drive.google.com/uc?export=download&id=1R-4SAgqnC84x1I_9ArSjoT_pHaOesmQ7"
+# Constants (from environment variables)
+API_URL = os.getenv("API_URL", "https://www.oklink.com/api/v5/explorer/block/block-fills")
+API_KEY = os.getenv("API_KEY")
+CHAIN_SHORT_NAME = os.getenv("CHAIN_SHORT_NAME", "TRON")
+SHEET_NAME = os.getenv("SHEET_NAME", "91club-api")
+JSON_URL = os.getenv("JSON_URL")
 JSON_FILE_NAME = "credentials.json"
 
 # Download credentials file
