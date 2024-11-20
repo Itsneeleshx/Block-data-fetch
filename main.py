@@ -7,6 +7,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from collections import defaultdict
 import pandas as pd
 from datetime import datetime
+import traceback
+from dateutil import parser
 
 app = Flask(__name__)
 
@@ -87,12 +89,16 @@ def normalize_transitions():
 def predict_next_digit():
     data = pd.DataFrame(sheet.get_all_records())
     if 'Last Numerical Digit' not in data.columns or data.empty:
+        app.logger.error("Data missing or empty")
         return {"error": "Data missing or empty"}
+    
     last_digit = int(data['Last Numerical Digit'].iloc[-1])
     category = 'Small' if last_digit <= 4 else 'Big'
     transition_matrix = normalize_transitions()
     if category not in transition_matrix:
+        app.logger.error(f"No data for category '{category}'")
         return {"error": f"No data for category '{category}'"}
+    
     return transition_matrix[category], last_digit
 
 # Flask API endpoint
@@ -103,22 +109,35 @@ def home():
 @app.route('/predict', methods=['GET'])
 def get_prediction():
     timestamp = request.args.get('timestamp')
-    if not timestamp:
-        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    predicted, last_digit = predict_next_digit()
-    return jsonify({
-        "timestamp": timestamp,
-        "last_digit": last_digit,
-        "predictions": predicted
-    })
+    try:
+        if timestamp:
+            # Attempt to parse the timestamp from the query parameter
+            timestamp = parser.parse(timestamp).strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Call the prediction function
+        predicted, last_digit = predict_next_digit()
+        
+        return jsonify({
+            "timestamp": timestamp,
+            "last_digit": last_digit,
+            "predictions": predicted
+        })
+    except Exception as e:
+        # Log the exception and stack trace
+        app.logger.error(f"Error occurred: {str(e)}")
+        traceback.print_exc()  # Prints the stack trace to the logs
+        return jsonify({
+            "error": f"An error occurred: {str(e)}"
+        })
 
 # Scheduler to fetch data every minute at the 54th second
 scheduler = BackgroundScheduler()
 scheduler.add_job(fetch_and_write_data, 'cron', second=54)
 scheduler.start()
 
-import os
-
+# Running the app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))  # Render uses the PORT environment variable
     app.run(host="0.0.0.0", port=port)
