@@ -13,6 +13,9 @@ import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 
+# Load environment variables from a .env file in local development
+load_dotenv()
+
 # OKLink API details
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
 API_KEY = os.getenv("OKLINK_API_KEY")
