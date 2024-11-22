@@ -1,7 +1,9 @@
 Flask
-requests
+numpy
+pandas
+tensorflow
 gspread
 google-auth
-pandas
-apscheduler
-gunicorn
+google-auth-oauthlib
+google-auth-httplib2
+requests
