@@ -1,123 +1,152 @@
-from flask import Flask, request, jsonify
-import os
 import requests
+from datetime import datetime, timezone, timedelta
+import time
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 import gspread
 from google.oauth2.service_account import Credentials
-from apscheduler.schedulers.background import BackgroundScheduler
-from collections import defaultdict
-import pandas as pd
-from datetime import datetime
 
-app = Flask(__name__)
+# OKLink API details
+API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
+API_KEY = "c8f46c6a-11f6-4d1a-bb23-cfa0f55dfa73"
+CHAIN_SHORT_NAME = "TRON"
 
-# Write the Google credentials from environment variable to a file
-JSON_FILE_NAME = "credentials.json"
-google_credentials = os.getenv("GOOGLE_CREDENTIALS")
-if google_credentials:
-    with open(JSON_FILE_NAME, "w") as file:
-        file.write(google_credentials)
-else:
-    raise ValueError("GOOGLE_CREDENTIALS environment variable is not set")
+# Google Sheets setup
+json_file_name = "club-code-442100-85744d72b31e.json"
 
-# Constants (from environment variables)
-API_URL = os.getenv("API_URL", "https://www.oklink.com/api/v5/explorer/block/block-fills")
-API_KEY = os.getenv("API_KEY")
-CHAIN_SHORT_NAME = os.getenv("CHAIN_SHORT_NAME", "TRON")
-SHEET_NAME = os.getenv("SHEET_NAME", "91club-api")
-
-# Authenticate Google Sheets
 credentials = Credentials.from_service_account_file(
-    JSON_FILE_NAME,
-    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    json_file_name,
+    scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 )
 client = gspread.authorize(credentials)
-sheet = client.open(SHEET_NAME).sheet1
+sheet_name = "91club-api"
+sheet = client.open(sheet_name).sheet1
 
-# Global transition matrix
-transitions = defaultdict(lambda: defaultdict(int))
+# Function to calculate the target timestamp
+def calculate_target_timestamp():
+    now = datetime.now(timezone.utc)
+    target_time = now.replace(second=54, microsecond=0)
+    if now.second >= 54:
+        target_time += timedelta(minutes=1)
+    return target_time, int(target_time.timestamp() * 1000)
 
-# Fetch block data
-def fetch_block_data(block_height):
+# Fetch block height from OKLink
+def get_block_height_by_time(target_timestamp_ms):
+    delay = 8
+    time.sleep(delay)
+    params = {"chainShortName": CHAIN_SHORT_NAME, "time": target_timestamp_ms}
     headers = {"Ok-Access-Key": API_KEY}
+    url = f"{API_BASE_URL}/block/block-height-by-time"
+    response = requests.get(url, headers=headers, params=params)
+    response_data = response.json()
+    if response.status_code == 200 and response_data["code"] == "0":
+        block_data = response_data.get("data", [])
+        if block_data:
+            block_height = block_data[0]["height"]
+            block_time = int(block_data[0]["blockTime"])
+            return int(block_height), datetime.fromtimestamp(block_time / 1000, tz=timezone.utc)
+    return None, None
+
+# Fetch block hash by height
+def get_block_hash_by_height(block_height):
     params = {"chainShortName": CHAIN_SHORT_NAME, "height": block_height}
-    response = requests.get(API_URL, headers=headers, params=params)
-    data = response.json()
-    if data.get("code") == "0" and data.get("data"):
-        return data["data"][0]
+    headers = {"Ok-Access-Key": API_KEY}
+    url = f"{API_BASE_URL}/block/block-fills"
+    response = requests.get(url, headers=headers, params=params)
+    response_data = response.json()
+    if response.status_code == 200 and response_data["code"] == "0":
+        block_data = response_data.get("data", [])
+        if block_data:
+            block_hash = block_data[0]["hash"]
+            return block_hash
     return None
 
-# Get last numerical digit from block hash
-def get_last_numerical_digit(block_hash):
+# Extract the last numerical digit
+def extract_last_numerical_digit(block_hash):
     for char in reversed(block_hash):
         if char.isdigit():
-            return int(char)
+            return char
     return None
 
-# Fetch and write data
-def fetch_and_write_data():
-    now = datetime.utcnow()
-    block_height = int(now.timestamp() // 60) * 20
-    block_data = fetch_block_data(block_height)
-    if block_data:
-        block_hash = block_data.get("hash")
-        last_digit = get_last_numerical_digit(block_hash)
-        row = [block_height, last_digit]
-        sheet.append_row(row)
-
-# Update transitions
-def update_transitions():
+# Function to fetch data from Google Sheets
+def fetch_data():
     data = pd.DataFrame(sheet.get_all_records())
     if 'Last Numerical Digit' not in data.columns:
-        return
+        raise ValueError("The column 'Last Numerical Digit' is missing in the data.")
+    return data
+
+# Preprocess data for LSTM
+def preprocess_data(data, sequence_length=9):
     data['Last Numerical Digit'] = pd.to_numeric(data['Last Numerical Digit'], errors='coerce').fillna(0).astype(int)
-    data['Category'] = data['Last Numerical Digit'].apply(lambda x: 'Small' if x <= 4 else 'Big')
-    for i in range(len(data) - 1):
-        current_category = data['Category'].iloc[i]
-        next_category = data['Category'].iloc[i + 1]
-        transitions[current_category][next_category] += 1
+    data['Category'] = data['Last Numerical Digit'].apply(lambda x: 0 if x <= 4 else 1)
+    sequences, labels = [], []
+    for i in range(len(data) - sequence_length):
+        sequences.append(data['Category'].iloc[i:i + sequence_length].values)
+        labels.append(data['Category'].iloc[i + sequence_length])
+    return np.array(sequences), np.array(labels)
 
-# Normalize transitions
-def normalize_transitions():
-    transition_matrix = {}
-    for current, next_states in transitions.items():
-        total = sum(next_states.values())
-        transition_matrix[current] = {state: (count / total) * 100 for state, count in next_states.items()}
-    return transition_matrix
+# Build the LSTM model
+def build_model(input_shape):
+    model = Sequential()
+    model.add(LSTM(50, activation='relu', input_shape=input_shape, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(LSTM(50, activation='relu'))
+    model.add(Dropout(0.2))
+    model.add(Dense(1, activation='sigmoid'))
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
 
-# Predict next digit
-def predict_next_digit():
-    data = pd.DataFrame(sheet.get_all_records())
-    if 'Last Numerical Digit' not in data.columns or data.empty:
-        return {"error": "Data missing or empty"}
-    last_digit = int(data['Last Numerical Digit'].iloc[-1])
-    category = 'Small' if last_digit <= 4 else 'Big'
-    transition_matrix = normalize_transitions()
-    if category not in transition_matrix:
-        return {"error": f"No data for category '{category}'"}
-    return transition_matrix[category], last_digit
+# Train the LSTM model
+def train_model(model, X, y, epochs=10, batch_size=32):
+    model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=2)
+    return model
 
-# Flask API endpoint
-@app.route('/')
-def home():
-    return "Welcome to the Flask App!"
+# Predict the next digit and category
+def predict_next_digit(model, sequence):
+    sequence = np.expand_dims(sequence, axis=0)
+    sequence = np.expand_dims(sequence, axis=2)
+    prob = model.predict(sequence)[0][0]
+    category = 'Small' if prob <= 0.5 else 'Big'
+    predicted_digit = np.round(prob * 9).astype(int)
+    return predicted_digit, category, prob * 100
 
-@app.route('/predict', methods=['GET'])
-def get_prediction():
-    timestamp = request.args.get('timestamp')
-    if not timestamp:
-        timestamp = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-    predicted, last_digit = predict_next_digit()
-    return jsonify({
-        "timestamp": timestamp,
-        "last_digit": last_digit,
-        "predictions": predicted
-    })
+# Main function
+def main():
+    sequence_length = 9
+    try:
+        # Fetch and preprocess initial data
+        data = fetch_data()
+        X, y = preprocess_data(data, sequence_length=sequence_length)
+        X = np.expand_dims(X, axis=2)
+        model = build_model(input_shape=(X.shape[1], X.shape[2]))
+        model = train_model(model, X, y, epochs=20, batch_size=32)
 
-# Scheduler to fetch data every minute at the 54th second
-scheduler = BackgroundScheduler()
-scheduler.add_job(fetch_and_write_data, 'cron', second=54)
-scheduler.start()
+        while True:
+            target_time, target_timestamp_ms = calculate_target_timestamp()
+            while datetime.now(timezone.utc) < target_time:
+                time.sleep(0.1)
+
+            block_height, block_time = get_block_height_by_time(target_timestamp_ms)
+            if block_height and block_time and block_time.second == 54:
+                block_hash = get_block_hash_by_height(block_height)
+                if block_hash:
+                    last_digit = extract_last_numerical_digit(block_hash)
+                    if last_digit:
+                        sheet.append_row([datetime.now().isoformat(), block_height, last_digit])
+                        data = fetch_data()
+                        X_new, _ = preprocess_data(data, sequence_length=sequence_length)
+                        X_new = np.expand_dims(X_new[-1], axis=0)
+                        X_new = np.expand_dims(X_new, axis=2)
+                        digit, category, prob = predict_next_digit(model, X_new[-1])
+                        print(f"Predicted Next Digit: {digit} ({prob:.2f}%)")
+                        print(f"Predicted Category: {category}")
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Process terminated by user.")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Render uses the PORT environment variable
-    app.run(host="0.0.0.0", port=port)
+    main()
