@@ -9,3 +9,4 @@ google-auth-httplib2
 requests
 gunicorn
 scikit-learn
+python-dotenv
