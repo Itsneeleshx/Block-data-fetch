@@ -1,3 +1,4 @@
+import os
 import requests
 from datetime import datetime, timezone, timedelta
 import time
@@ -8,22 +9,24 @@ from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 import gspread
+import json
+import os
 from google.oauth2.service_account import Credentials
 
 # OKLink API details
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
-API_KEY = "c8f46c6a-11f6-4d1a-bb23-cfa0f55dfa73"
+API_KEY = os.getenv("OKLINK_API_KEY")
 CHAIN_SHORT_NAME = "TRON"
 
-# Google Sheets setup
-json_file_name = "club-code-442100-85744d72b31e.json"
 
-credentials = Credentials.from_service_account_file(
-    json_file_name,
+# Use environment variable for Google credentials
+credentials = Credentials.from_service_account_info(
+    json.loads(os.getenv("GOOGLE_CREDENTIALS")),
     scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 )
+
 client = gspread.authorize(credentials)
-sheet_name = "91club-api"
+sheet_name = os.getenv("GOOGLE_SHEET_NAME", "91club-api")  # Default value is optional.
 sheet = client.open(sheet_name).sheet1
 
 # Function to calculate the target timestamp
