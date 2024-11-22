@@ -1,4 +1,5 @@
 import os
+import json
 import requests
 from datetime import datetime, timezone, timedelta
 import time
@@ -9,9 +10,8 @@ from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 import gspread
-import json
-import os
 from google.oauth2.service_account import Credentials
+from dotenv import load_dotenv
 
 # OKLink API details
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
