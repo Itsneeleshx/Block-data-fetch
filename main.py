@@ -16,6 +16,12 @@ from dotenv import load_dotenv
 # Load environment variables from a .env file in local development
 load_dotenv()
 
+# Ensure all required environment variables are set
+required_vars = ["GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CREDENTIALS", "OKLINK_API_KEY"]
+for var in required_vars:
+    if not os.getenv(var):
+        raise EnvironmentError(f"Environment variable '{var}' is not set.")
+
 # OKLink API details
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
 API_KEY = os.getenv("OKLINK_API_KEY")
