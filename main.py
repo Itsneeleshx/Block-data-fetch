@@ -13,30 +13,50 @@ import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
 
-# Load environment variables from a .env file in local development
+# Suppress TensorFlow CPU logs
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+# Load environment variables
 load_dotenv()
 
 # Ensure all required environment variables are set
-required_vars = ["GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CREDENTIALS", "OKLINK_API_KEY"]
+required_vars = ["GOOGLE_CREDENTIALS", "OKLINK_API_KEY"]
 for var in required_vars:
     if not os.getenv(var):
         raise EnvironmentError(f"Environment variable '{var}' is not set.")
 
-# OKLink API details
+# Parse GOOGLE_CREDENTIALS JSON
+try:
+    credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+except json.JSONDecodeError as e:
+    raise ValueError("GOOGLE_CREDENTIALS environment variable contains invalid JSON.") from e
+
+# Google credentials setup
+credentials = Credentials.from_service_account_info(
+    credentials_info,
+    scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+)
+client = gspread.authorize(credentials)
+
+# Set default Google Sheet name
+sheet_name = os.getenv("GOOGLE_SHEET_NAME", "91club-api")
+sheet = client.open(sheet_name).sheet1
+
+# OKLink API setup
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
 API_KEY = os.getenv("OKLINK_API_KEY")
 CHAIN_SHORT_NAME = "TRON"
 
+# Example API usage
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
+response = requests.get(f"{API_BASE_URL}/chains/{CHAIN_SHORT_NAME}", headers=headers)
+if response.status_code != 200:
+    raise Exception(f"Failed to connect to OKLink API: {response.text}")
 
-# Use environment variable for Google credentials
-credentials = Credentials.from_service_account_info(
-    json.loads(os.getenv("GOOGLE_CREDENTIALS")),
-    scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-)
-
-client = gspread.authorize(credentials)
-sheet_name = os.getenv("GOOGLE_SHEET_NAME", "91club-api")  # Default value is optional.
-sheet = client.open(sheet_name).sheet1
+print("Connected to OKLink API successfully!")
 
 # Function to calculate the target timestamp
 def calculate_target_timestamp():
