@@ -153,10 +153,6 @@ def fetch_and_log_block_data():
         # Extract last digit of block hash
         last_digit = int(block_hash[-1], 16)
 
-        # Update shared state
-        shared_state["current_block_height"] = current_block_height
-        shared_state["current_last_digit"] = last_digit
-
         # Log last digit to Google Sheets
         sheet.append_row([datetime.now().isoformat(), block_height, last_digit])
 
