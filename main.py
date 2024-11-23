@@ -69,6 +69,11 @@ app = Flask(__name__)
 # Global variable to store the LSTM model (loaded once)
 lstm_model = None
 
+# Ensure global variables are defined
+sequence = []  # Store historical sequence of last digits
+SEQUENCE_LENGTH = 30  # Length of sequence for LSTM input
+latest_probability = None  # Store the latest prediction
+
 # Function to load the LSTM model
 def load_lstm_model():
     global lstm_model
@@ -169,10 +174,7 @@ def log_to_google_sheet_prediction(predicted_digit, probabilities):
     timestamp = datetime.datetime.now().isoformat()
     sheet.append_row([timestamp, "Prediction", predicted_digit, probabilities])
 
-# Ensure global variables are defined
-sequence = []  # Store historical sequence of last digits
-SEQUENCE_LENGTH = 30  # Length of sequence for LSTM input
-latest_probability = None  # Store the latest prediction
+
 
 # Function to process LSTM predictions
 def process_prediction(last_digit):
