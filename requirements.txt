@@ -1,5 +1,4 @@
 Flask
-jsonify
 numpy
 pandas
 tensorflow>=2.12
@@ -12,5 +11,4 @@ gunicorn
 scikit-learn
 python-dotenv
 schedule
-datetime
 
