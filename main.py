@@ -178,17 +178,27 @@ def fetch_and_log_block_data():
 
 # Predict the next digit and log the probability
 def predict_next_digit():
-    data = pd.DataFrame(sheet.get_all_records())
-    if len(data) < SEQUENCE_LENGTH:
-        logging.warning("Not enough data to make predictions.")
-        return
-    last_sequence = data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values
-    normalized_sequence = scaler.transform(last_sequence.reshape(-1, 1)).reshape(1, SEQUENCE_LENGTH, 1)
-    probabilities = lstm_model.predict(normalized_sequence)
-    predicted_digit = np.argmax(probabilities)
-    confidence = probabilities[0][predicted_digit]
-    logging.info(f"Predicted digit: {predicted_digit} with confidence {confidence:.2%}")
+    try:
+        # Fetch data from Google Sheets
+        data = pd.DataFrame(sheet.get_all_records())
+        if len(data) < SEQUENCE_LENGTH:
+            logging.warning("Not enough data to make predictions.")
+            return None, None
 
+        # Prepare the last sequence
+        last_sequence = data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values
+        normalized_sequence = scaler.transform(last_sequence.reshape(-1, 1)).reshape(1, SEQUENCE_LENGTH, 1)
+
+        # Predict using the LSTM model
+        probabilities = lstm_model.predict(normalized_sequence, verbose=0)
+        predicted_digit = np.argmax(probabilities)
+        confidence = probabilities[0][predicted_digit]
+
+        return predicted_digit, confidence
+    except Exception as e:
+        logging.error(f"Error in predict_next_digit: {str(e)}")
+        return None, None
+        
 # Function to calculate the target timestamp
 def calculate_target_timestamp():
     now = datetime.now(timezone.utc)
