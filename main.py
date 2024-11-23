@@ -159,16 +159,10 @@ def fetch_and_log_block_data():
         logging.info(f"Block height: {block_height}, Block hash: {block_hash}, Last digit: {last_digit}")
 
         # Predict the next digit using the LSTM model
-        predicted_digit, confidence = predict_next_digit()  # Ensure predict_next_digit returns both digit and confidence
+        predicted_digit, confidence = predict_next_digit()
 
-        # After fetching the block data
-        logging.info(f"Fetched block height: {block_height}, last digit: {last_digit}, predicted digit: {predicted_digit}, confidence: {confidence}")
-
-        # Before updating the shared_state
-        logging.info(f"Updating shared_state with: {block_height}, {last_digit}, {predicted_digit}, {confidence}")
-
-# After fetching data from shared_state
-logging.info(f"Shared state values: {shared_state}")
+        # Log the prediction
+        logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}")
 
         # Update shared state (thread-safe)
         with state_lock:
