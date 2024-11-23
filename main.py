@@ -86,11 +86,26 @@ def get_block():
         if block_hash is None:
             return jsonify({"error": "Failed to fetch block hash"}), 500
 
+        # Extract last digit of the block hash
+        last_digit = int(block_hash[-1])
+
+        # Update Google Sheet with the last digit
+        try:
+            sheet.append_row([str(datetime.now()), block_height, block_hash, last_digit])
+            logging.info(f"Last digit {last_digit} sent to Google Sheet successfully.")
+        except Exception as e:
+            logging.error(f"Error updating Google Sheet: {str(e)}")
+            return jsonify({"error": "Failed to update Google Sheet"}), 500
+
+        # Update LSTM input and prediction
+        update_and_predict_lstm(block_hash)
+
         # Return block details
         response = {
             "block_height": block_height,
             "block_time": block_time.isoformat(),
-            "block_hash": block_hash
+            "block_hash": block_hash,
+            "last_digit": last_digit
         }
         return jsonify(response)
     except Exception as e:
