@@ -113,39 +113,40 @@ def get_block():
         if block_hash is None:
             return jsonify({"error": "Failed to fetch block hash"}), 500
 
+        # Convert the last character of the block hash to an integer
         try:
-    # Convert the last character of the block hash to an integer
-    last_digit = int(block_hash[-1], 16)
-except ValueError as e:
-    # Handle invalid conversions (e.g., if block_hash[-1] is not a valid hex character)
-    logging.error(f"Error converting block hash to last digit: {e}")
-    last_digit = None
-    
+            last_digit = int(block_hash[-1], 16)
+        except ValueError as e:
+            # Handle invalid conversions (e.g., if block_hash[-1] is not a valid hex character)
+            logging.error(f"Error converting block hash to last digit: {e}")
+            last_digit = None
+
         # Update Google Sheet with the last digit
-        try:
-            sheet.append_row([str(datetime.now()), block_height, block_hash, last_digit])
-            logging.info(f"Last digit {last_digit} sent to Google Sheet successfully.")
-        except Exception as e:
-            logging.error(f"Error updating Google Sheet: {str(e)}")
-            return jsonify({"error": "Failed to update Google Sheet"}), 500
+        if last_digit is not None:
+            try:
+                sheet.append_row([str(datetime.now()), block_height, block_hash, last_digit])
+                logging.info(f"Last digit {last_digit} sent to Google Sheet successfully.")
+            except Exception as e:
+                logging.error(f"Error updating Google Sheet: {str(e)}")
+                return jsonify({"error": "Failed to update Google Sheet"}), 500
 
-        # Send last digit to LSTM model and get prediction
-        try:
-            predicted_next_digit = update_and_predict_lstm(last_digit)
-            logging.info(f"LSTM predicted next digit: {predicted_next_digit}")
-        except Exception as e:
-            logging.error(f"Error predicting next digit with LSTM: {str(e)}")
-            return jsonify({"error": "Failed to predict next digit"}), 500
+            # Send last digit to LSTM model and get prediction
+            try:
+                predicted_next_digit = update_and_predict_lstm(last_digit)
+                logging.info(f"LSTM predicted next digit: {predicted_next_digit}")
+                return jsonify({
+                    "block_height": block_height,
+                    "block_hash": block_hash,
+                    "last_digit": last_digit,
+                    "predicted_next_digit": predicted_next_digit
+                })
+            except Exception as e:
+                logging.error(f"Error predicting next digit with LSTM: {str(e)}")
+                return jsonify({"error": "Failed to predict next digit"}), 500
+        else:
+            logging.warning("Invalid last digit. Skipping Google Sheet update and prediction.")
+            return jsonify({"error": "Invalid last digit"}), 500
 
-        # Return block details with prediction
-        response = {
-            "block_height": block_height,
-            "block_time": block_time.isoformat(),
-            "block_hash": block_hash,
-            "last_digit": last_digit,
-            "predicted_next_digit": predicted_next_digit
-        }
-        return jsonify(response)
     except Exception as e:
         logging.error(f"Error fetching block: {str(e)}")
         return jsonify({"error": str(e)}), 500
