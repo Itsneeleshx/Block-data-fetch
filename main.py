@@ -104,6 +104,35 @@ latest_probability = None
 @app.route('/get-latest-prediction', methods=['GET'])
 def get_latest_prediction():
     return jsonify({"latest_probability": latest_probability})
+# Function to log block data to Google Sheet
+def log_to_google_sheet(last_digit):
+    timestamp = datetime.datetime.now().isoformat()
+    sheet.append_row([timestamp, "Last Digit", last_digit])
+
+# Function to log predictions to Google Sheet
+def log_to_google_sheet_prediction(predicted_digit, probabilities):
+    timestamp = datetime.datetime.now().isoformat()
+    sheet.append_row([timestamp, "Prediction", predicted_digit, probabilities])
+
+# Function to process LSTM predictions
+def process_prediction(last_digit):
+    global latest_probability
+
+    # Update historical sequence
+    sequence.append(last_digit)
+    if len(sequence) > SEQUENCE_LENGTH:
+        sequence.pop(0)
+
+    # Format data for LSTM input
+    input_data = np.array(sequence).reshape(1, SEQUENCE_LENGTH, 1)
+
+    # Get prediction from the LSTM model
+    probabilities = lstm_model.predict(input_data)
+    predicted_digit = np.argmax(probabilities)
+
+    # Update shared variable and log to Google Sheet
+    latest_probability = {"digit": predicted_digit, "probabilities": probabilities.tolist()}
+    log_to_google_sheet_prediction(predicted_digit, probabilities)
 
 # Function: Calculate target timestamp
 def calculate_target_timestamp():
