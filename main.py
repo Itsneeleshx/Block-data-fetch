@@ -124,13 +124,17 @@ def fetch_and_preprocess_data():
 # Train or retrain the LSTM model
 def train_lstm_model():
     global lstm_model
-    sequences, labels = fetch_and_preprocess_data()
-    if len(sequences) == 0:
-        logging.warning("Not enough data to train the model.")
-        return
-    lstm_model.fit(sequences, labels, epochs=5, batch_size=32, verbose=2)
-    lstm_model.save(MODEL_PATH)
-    logging.info("LSTM model trained and saved.")
+    try:
+        sequences, labels = fetch_and_preprocess_data()
+        if len(sequences) == 0:
+            logging.warning("Not enough data to train the model.")
+            return
+
+        lstm_model.fit(sequences, labels, epochs=5, batch_size=32, verbose=2)
+        lstm_model.save(MODEL_PATH)
+        logging.info("LSTM model trained and saved.")
+    except Exception as e:
+        logging.error(f"Error in train_lstm_model: {str(e)}")
 
 # Function to fetch block data and log to Google Sheets
 def fetch_and_log_block_data():
