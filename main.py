@@ -81,6 +81,7 @@ def load_lstm_model():
     if lstm_model is None:
         lstm_model = tf.keras.models.load_model("model.h5")
         print("LSTM model loaded successfully.")
+
 # Function to log predictions to Google Sheets
 def log_to_google_sheet_prediction(predicted_digit, probabilities):
     timestamp = datetime.datetime.now().isoformat()
@@ -114,21 +115,6 @@ def process_prediction(last_digit):
     latest_probability = {"digit": predicted_digit, "probabilities": probabilities.tolist()}
     log_to_google_sheet_prediction(predicted_digit, probabilities)
 
-# Function to predict the next last digit using the LSTM model
-def predict_next_digit(last_digits):
-    # Ensure the model is loaded
-    load_lstm_model()
-
-    # Preprocess data for prediction
-    input_data = preprocess_data_for_lstm(last_digits)
-
-    # Make prediction
-    prediction = lstm_model.predict(input_data)
-    predicted_digit = np.argmax(prediction)  # Get the digit with the highest probability
-    probability = prediction[0][predicted_digit]  # Probability of the predicted digit
-
-    return predicted_digit, probability
-
 # Route: Home endpoint
 @app.route('/')
 def index():
@@ -155,7 +141,6 @@ def get_block():
         try:
             last_digit = int(block_hash[-1], 16)
         except ValueError as e:
-            # Handle invalid conversions (e.g., if block_hash[-1] is not a valid hex character)
             logging.error(f"Error converting block hash to last digit: {e}")
             last_digit = None
 
@@ -168,19 +153,16 @@ def get_block():
                 logging.error(f"Error updating Google Sheet: {str(e)}")
                 return jsonify({"error": "Failed to update Google Sheet"}), 500
 
-            # Send last digit to LSTM model and get prediction
-            try:
-                predicted_next_digit = update_and_predict_lstm(last_digit)
-                logging.info(f"LSTM predicted next digit: {predicted_next_digit}")
-                return jsonify({
-                    "block_height": block_height,
-                    "block_hash": block_hash,
-                    "last_digit": last_digit,
-                    "predicted_next_digit": predicted_next_digit
-                })
-            except Exception as e:
-                logging.error(f"Error predicting next digit with LSTM: {str(e)}")
-                return jsonify({"error": "Failed to predict next digit"}), 500
+            # Process prediction
+            process_prediction(last_digit)
+            predicted_next_digit = latest_probability["digit"]
+
+            return jsonify({
+                "block_height": block_height,
+                "block_hash": block_hash,
+                "last_digit": last_digit,
+                "predicted_next_digit": predicted_next_digit
+            })
         else:
             logging.warning("Invalid last digit. Skipping Google Sheet update and prediction.")
             return jsonify({"error": "Invalid last digit"}), 500
@@ -189,23 +171,13 @@ def get_block():
         logging.error(f"Error fetching block: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-# Shared variable to store the latest probability
-latest_probability = None
-
 # Route: Get the latest prediction
 @app.route('/get-latest-prediction', methods=['GET'])
 def get_latest_prediction():
     return jsonify({"latest_probability": latest_probability})
 
-# Function to log block data to Google Sheet
-def log_to_google_sheet(last_digit):
-    timestamp = datetime.datetime.now().isoformat()
-    sheet.append_row([timestamp, "Last Digit", last_digit])
-
-# Function to log predictions to Google Sheet
-def log_to_google_sheet_prediction(predicted_digit, probabilities):
-    timestamp = datetime.datetime.now().isoformat()
-    sheet.append_row([timestamp, "Prediction", predicted_digit, probabilities])
+# Ensure the model is loaded at startup
+load_lstm_model()
 
 # Function: Calculate target timestamp
 def calculate_target_timestamp():
