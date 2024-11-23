@@ -150,6 +150,7 @@ latest_probability = None
 @app.route('/get-latest-prediction', methods=['GET'])
 def get_latest_prediction():
     return jsonify({"latest_probability": latest_probability})
+
 # Function to log block data to Google Sheet
 def log_to_google_sheet(last_digit):
     timestamp = datetime.datetime.now().isoformat()
@@ -164,19 +165,21 @@ def log_to_google_sheet_prediction(predicted_digit, probabilities):
 def process_prediction(last_digit):
     global latest_probability
 
-    # Update historical sequence
+    # 1. Update the historical sequence with the new last digit
     sequence.append(last_digit)
+    
+    # 2. Ensure the sequence has a fixed length (e.g., 30 digits max)
     if len(sequence) > SEQUENCE_LENGTH:
-        sequence.pop(0)
+        sequence.pop(0)  # Keep only the most recent SEQUENCE_LENGTH digits
 
-    # Format data for LSTM input
+    # 3. Format the sequence data for LSTM input (reshape as 3D array)
     input_data = np.array(sequence).reshape(1, SEQUENCE_LENGTH, 1)
 
-    # Get prediction from the LSTM model
+    # 4. Get the prediction from the LSTM model
     probabilities = lstm_model.predict(input_data)
-    predicted_digit = np.argmax(probabilities)
+    predicted_digit = np.argmax(probabilities)  # Get the digit with the highest probability
 
-    # Update shared variable and log to Google Sheet
+    # 5. Update the latest probability and log prediction to Google Sheet
     latest_probability = {"digit": predicted_digit, "probabilities": probabilities.tolist()}
     log_to_google_sheet_prediction(predicted_digit, probabilities)
 
