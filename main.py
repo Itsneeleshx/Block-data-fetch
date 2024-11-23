@@ -3,12 +3,6 @@ import json
 import requests
 from datetime import datetime, timezone, timedelta
 import time
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-from sklearn.preprocessing import LabelEncoder
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
 import gspread
 from google.oauth2.service_account import Credentials
 from dotenv import load_dotenv
@@ -47,19 +41,11 @@ API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
 API_KEY = os.getenv("OKLINK_API_KEY")
 CHAIN_SHORT_NAME = "TRON"
 
-# Example API usage
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-response = requests.get(f"{API_BASE_URL}/chains/{CHAIN_SHORT_NAME}", headers=headers)
-if response.status_code != 200:
-    raise Exception(f"Failed to connect to OKLink API: {response.text}")
-
-print("Connected to OKLink API successfully!")
-
 # Function to calculate the target timestamp
 def calculate_target_timestamp():
+    """
+    Calculate the timestamp for the 54th second of the current or next minute.
+    """
     now = datetime.now(timezone.utc)
     target_time = now.replace(second=54, microsecond=0)
     if now.second >= 54:
@@ -68,34 +54,69 @@ def calculate_target_timestamp():
 
 # Fetch block height from OKLink
 def get_block_height_by_time(target_timestamp_ms):
-    delay = 8
+    """
+    Fetch the block height for the given timestamp.
+    Introduce a delay to ensure the block is created.
+    """
+    delay = 8  # Add an 8-second delay
+    print(f"Waiting {delay} seconds to ensure the block is created...")
     time.sleep(delay)
+
     params = {"chainShortName": CHAIN_SHORT_NAME, "time": target_timestamp_ms}
     headers = {"Ok-Access-Key": API_KEY}
     url = f"{API_BASE_URL}/block/block-height-by-time"
     response = requests.get(url, headers=headers, params=params)
     response_data = response.json()
+
     if response.status_code == 200 and response_data["code"] == "0":
         block_data = response_data.get("data", [])
         if block_data:
             block_height = block_data[0]["height"]
-            block_time = int(block_data[0]["blockTime"])
+            block_time = int(block_data[0]["blockTime"])  # Milliseconds since epoch
+            print(f"Block height: {block_height}, Block time: {block_time}")
             return int(block_height), datetime.fromtimestamp(block_time / 1000, tz=timezone.utc)
+    else:
+        print(f"Error fetching block height: {response.text}")
     return None, None
 
 # Fetch block hash by height
 def get_block_hash_by_height(block_height):
+    """
+    Fetch the block hash for a specific block height.
+    """
     params = {"chainShortName": CHAIN_SHORT_NAME, "height": block_height}
     headers = {"Ok-Access-Key": API_KEY}
     url = f"{API_BASE_URL}/block/block-fills"
     response = requests.get(url, headers=headers, params=params)
     response_data = response.json()
+
     if response.status_code == 200 and response_data["code"] == "0":
         block_data = response_data.get("data", [])
         if block_data:
             block_hash = block_data[0]["hash"]
+            print(f"Block hash: {block_hash}")
             return block_hash
+    else:
+        print(f"Error fetching block hash: {response.text}")
     return None
+
+# Test the API and retrieve data
+try:
+    # Calculate target timestamp
+    target_time, target_timestamp_ms = calculate_target_timestamp()
+    print(f"Target timestamp: {target_time} ({target_timestamp_ms} ms)")
+
+    # Fetch block height by timestamp
+    block_height, block_time = get_block_height_by_time(target_timestamp_ms)
+
+    # Fetch block hash by height
+    if block_height:
+        block_hash = get_block_hash_by_height(block_height)
+        if block_hash:
+            print(f"Block height: {block_height}, Block time: {block_time}, Block hash: {block_hash}")
+
+except Exception as e:
+    print(f"Error: {e}")
 
 # Extract the last numerical digit
 def extract_last_numerical_digit(block_hash):
