@@ -247,8 +247,8 @@ def home():
 
 # Start background tasks
 def start_cycle():
-    schedule.every().minute.at(":54").do(fetch_and_log_block_data)
-    schedule.every(10).minutes.do(train_lstm_model)
+    schedule.every().minute.at(":54").do(lambda: threading.Thread(target=fetch_and_log_block_data).start())
+    schedule.every(10).minutes.do(lambda: threading.Thread(target=train_lstm_model).start())
     while True:
         schedule.run_pending()
         sleep(1)
