@@ -113,8 +113,8 @@ def get_block():
         if block_hash is None:
             return jsonify({"error": "Failed to fetch block hash"}), 500
 
-        # Extract last digit of the block hash
-        last_digit = int(block_hash[-1])
+        # Extract last digit of block hash (as hexadecimal)
+last_digit = int(block_hash[-1], 16)
 
         # Update Google Sheet with the last digit
         try:
