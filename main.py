@@ -249,13 +249,6 @@ def start_cycle():
         schedule.run_pending()
         sleep(1)
 
-# Main function
-if __name__ == "__main__":
-    load_or_create_model()
-    background_thread = threading.Thread(target=start_cycle, daemon=True)
-    background_thread.start()
-    app.run(debug=True)
-
 # Route to fetch block data and prediction
 @app.route('/get_block', methods=['GET'])
 def get_block():
@@ -274,4 +267,7 @@ def get_block():
                 
 # Entry point
 if __name__ == "__main__":
-    main()
+    load_or_create_model()
+    background_thread = threading.Thread(target=start_cycle, daemon=True)
+    background_thread.start()
+    app.run(debug=True)
