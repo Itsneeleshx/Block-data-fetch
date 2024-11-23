@@ -155,7 +155,17 @@ def fetch_and_log_block_data():
         logging.info(f"Block height: {block_height}, Block hash: {block_hash}, Last digit: {last_digit}")
 
         # Predict the next digit using the LSTM model
-        predict_next_digit()
+        predicted_digit, confidence = predict_next_digit()  # Ensure predict_next_digit returns both digit and confidence
+
+        # Update shared state (thread-safe)
+        with state_lock:
+            shared_state["current_block_height"] = block_height
+            shared_state["current_last_digit"] = last_digit
+            shared_state["latest_prediction"] = {
+                "digit": predicted_digit,
+                "confidence": f"{confidence * 100:.2f}%",
+            }
+
     except Exception as e:
         logging.error(f"Error in fetch_and_log_block_data: {str(e)}")
 
