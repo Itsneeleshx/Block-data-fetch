@@ -1,19 +1,32 @@
+# Imports for core functionality
 import os
 import json
 import requests
 from datetime import datetime, timezone, timedelta
 import time
+import logging
+
+# Imports for handling data processing (if applicable)
 import numpy as np
 import pandas as pd
+
+# Imports for ML (if needed in the future)
 import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
-import gspread  # Google Sheets API
-from google.oauth2.service_account import Credentials
-from dotenv import load_dotenv  # For managing environment variables
 
-# Suppress TensorFlow CPU logs
+# Imports for Google Sheets
+import gspread
+from google.oauth2.service_account import Credentials
+
+# Flask imports for creating the API
+from flask import Flask, jsonify, request
+
+# Environment variable management
+from dotenv import load_dotenv
+
+# Suppress TensorFlow CPU logs (if applicable)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Load environment variables
@@ -25,18 +38,16 @@ for var in required_vars:
     if not os.getenv(var):
         raise EnvironmentError(f"Environment variable '{var}' is not set.")
 
-# Parse GOOGLE_CREDENTIALS JSON
+# Google Sheets setup
 try:
     credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+    credentials = Credentials.from_service_account_info(
+        credentials_info,
+        scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+    )
+    client = gspread.authorize(credentials)
 except json.JSONDecodeError as e:
     raise ValueError("GOOGLE_CREDENTIALS environment variable contains invalid JSON.") from e
-
-# Google credentials setup
-credentials = Credentials.from_service_account_info(
-    credentials_info,
-    scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-)
-client = gspread.authorize(credentials)
 
 # Set default Google Sheet name
 sheet_name = os.getenv("GOOGLE_SHEET_NAME", "91club-api")
@@ -47,25 +58,57 @@ API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
 API_KEY = os.getenv("OKLINK_API_KEY")
 CHAIN_SHORT_NAME = "TRON"
 
-# Function to calculate the target timestamp
+# Logging configuration
+logging.basicConfig(level=logging.INFO)
+
+# Flask app setup
+app = Flask(__name__)
+
+# Route: Home endpoint
+@app.route('/')
+def index():
+    return jsonify({"message": "Welcome to the Flask API"})
+
+# Route: Fetch block data
+@app.route('/get_block', methods=['GET'])
+def get_block():
+    try:
+        # Calculate target timestamp
+        target_time, target_timestamp_ms = calculate_target_timestamp()
+
+        # Fetch block height
+        block_height, block_time = get_block_height_by_time(target_timestamp_ms)
+        if block_height is None or block_time is None:
+            return jsonify({"error": "Failed to fetch block data"}), 500
+
+        # Fetch block hash
+        block_hash = get_block_hash_by_height(block_height)
+        if block_hash is None:
+            return jsonify({"error": "Failed to fetch block hash"}), 500
+
+        # Return block details
+        response = {
+            "block_height": block_height,
+            "block_time": block_time.isoformat(),
+            "block_hash": block_hash
+        }
+        return jsonify(response)
+    except Exception as e:
+        logging.error(f"Error fetching block: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+# Function: Calculate target timestamp
 def calculate_target_timestamp():
-    """
-    Calculate the timestamp for the 54th second of the current or next minute.
-    """
     now = datetime.now(timezone.utc)
     target_time = now.replace(second=54, microsecond=0)
     if now.second >= 54:
         target_time += timedelta(minutes=1)
     return target_time, int(target_time.timestamp() * 1000)
 
-# Fetch block height from OKLink
+# Function: Fetch block height by time
 def get_block_height_by_time(target_timestamp_ms):
-    """
-    Fetch the block height for the given timestamp.
-    Introduce a delay to ensure the block is created.
-    """
-    delay = 8  # Add an 8-second delay
-    print(f"Waiting {delay} seconds to ensure the block is created...")
+    delay = 8  # Wait to ensure the block is indexed
+    logging.info(f"Delaying for {delay} seconds to ensure the block is created...")
     time.sleep(delay)
 
     params = {"chainShortName": CHAIN_SHORT_NAME, "time": target_timestamp_ms}
@@ -78,18 +121,13 @@ def get_block_height_by_time(target_timestamp_ms):
         block_data = response_data.get("data", [])
         if block_data:
             block_height = block_data[0]["height"]
-            block_time = int(block_data[0]["blockTime"])  # Milliseconds since epoch
-            print(f"Block height: {block_height}, Block time: {block_time}")
+            block_time = int(block_data[0]["blockTime"])
             return int(block_height), datetime.fromtimestamp(block_time / 1000, tz=timezone.utc)
-    else:
-        print(f"Error fetching block height: {response.text}")
+    logging.error(f"Error fetching block height: {response.text}")
     return None, None
 
-# Fetch block hash by height
+# Function: Fetch block hash by height
 def get_block_hash_by_height(block_height):
-    """
-    Fetch the block hash for a specific block height.
-    """
     params = {"chainShortName": CHAIN_SHORT_NAME, "height": block_height}
     headers = {"Ok-Access-Key": API_KEY}
     url = f"{API_BASE_URL}/block/block-fills"
@@ -100,29 +138,11 @@ def get_block_hash_by_height(block_height):
         block_data = response_data.get("data", [])
         if block_data:
             block_hash = block_data[0]["hash"]
-            print(f"Block hash: {block_hash}")
             return block_hash
-    else:
-        print(f"Error fetching block hash: {response.text}")
+    logging.error(f"Error fetching block hash: {response.text}")
     return None
 
-# Test the API and retrieve data
-try:
-    # Calculate target timestamp
-    target_time, target_timestamp_ms = calculate_target_timestamp()
-    print(f"Target timestamp: {target_time} ({target_timestamp_ms} ms)")
 
-    # Fetch block height by timestamp
-    block_height, block_time = get_block_height_by_time(target_timestamp_ms)
-
-    # Fetch block hash by height
-    if block_height:
-        block_hash = get_block_hash_by_height(block_height)
-        if block_hash:
-            print(f"Block height: {block_height}, Block time: {block_time}, Block hash: {block_hash}")
-
-except Exception as e:
-    print(f"Error: {e}")
 
 # Extract the last numerical digit
 def extract_last_numerical_digit(block_hash):
@@ -207,5 +227,6 @@ def main():
     except KeyboardInterrupt:
         print("Process terminated by user.")
 
+# Run Flask app (for local testing only)
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
