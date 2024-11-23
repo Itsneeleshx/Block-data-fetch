@@ -228,7 +228,22 @@ if __name__ == "__main__":
     background_thread = threading.Thread(target=start_cycle, daemon=True)
     background_thread.start()
     app.run(debug=True)
-    
+
+# Route to fetch block data and prediction
+@app.route('/get_block', methods=['GET'])
+def get_block():
+    # Assuming `latest_probability` stores the latest prediction globally
+    try:
+        response = {
+            "block_height": current_block_height,  # Ensure this variable is updated in your script
+            "last_digit": current_last_digit,      # Latest block's last digit
+            "predicted_next_digit": latest_probability["digit"],  # Predicted digit
+            "confidence": f"{max(latest_probability['probabilities']) * 100:.2f}%"  # Prediction confidence
+        }
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+                
 # Entry point
 if __name__ == "__main__":
     main()
