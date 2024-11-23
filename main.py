@@ -279,6 +279,20 @@ def main():
     except KeyboardInterrupt:
         print("Process terminated by user.")
 
+# Function to start the scheduling cycle
+def start_cycle():
+    # Schedule the block-fetching process to run every minute at the 54th second
+    schedule.every().minute.at(":54").do(fetch_and_log_block_data)
+
+    # Continuously check for scheduled tasks
+    while True:
+        schedule.run_pending()
+        sleep(1)
+
+# Start the cycle in a separate thread
+background_thread = threading.Thread(target=start_cycle, daemon=True)
+background_thread.start()
+
 # Run Flask app (for local testing only)
 if __name__ == "__main__":
     app.run(debug=True)
