@@ -29,6 +29,14 @@ from dotenv import load_dotenv
 # Flask imports for creating the API
 from flask import Flask, jsonify
 
+# Threading lock for shared state
+from threading import Lock
+state_lock = Lock()
+
+# Shared state dictionary for thread-safe data sharing
+shared_state = {}
+
+
 # Suppress TensorFlow CPU logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
