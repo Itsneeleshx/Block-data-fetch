@@ -73,7 +73,7 @@ lstm_model = None
 def load_lstm_model():
     global lstm_model
     if lstm_model is None:
-        lstm_model = tf.keras.models.load_model("path/to/your/model.h5")
+        lstm_model = tf.keras.models.load_model("model.h5")
         print("LSTM model loaded successfully.")
 
 # Function to predict the next last digit using the LSTM model
