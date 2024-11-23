@@ -64,6 +64,31 @@ logging.basicConfig(level=logging.INFO)
 # Flask app setup
 app = Flask(__name__)
 
+# Global variable to store the LSTM model (loaded once)
+lstm_model = None
+
+# Function to load the LSTM model
+def load_lstm_model():
+    global lstm_model
+    if lstm_model is None:
+        lstm_model = tf.keras.models.load_model("path/to/your/model.h5")
+        print("LSTM model loaded successfully.")
+
+# Function to predict the next last digit using the LSTM model
+def predict_next_digit(last_digits):
+    # Ensure the model is loaded
+    load_lstm_model()
+
+    # Preprocess data for prediction
+    input_data = preprocess_data_for_lstm(last_digits)
+
+    # Make prediction
+    prediction = lstm_model.predict(input_data)
+    predicted_digit = np.argmax(prediction)  # Get the digit with the highest probability
+    probability = prediction[0][predicted_digit]  # Probability of the predicted digit
+
+    return predicted_digit, probability
+
 # Route: Home endpoint
 @app.route('/')
 def index():
