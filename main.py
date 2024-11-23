@@ -97,6 +97,14 @@ def get_block():
         logging.error(f"Error fetching block: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+# Shared variable to store the latest probability
+latest_probability = None
+
+# Route: Get the latest prediction
+@app.route('/get-latest-prediction', methods=['GET'])
+def get_latest_prediction():
+    return jsonify({"latest_probability": latest_probability})
+
 # Function: Calculate target timestamp
 def calculate_target_timestamp():
     now = datetime.now(timezone.utc)
