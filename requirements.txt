@@ -12,6 +12,5 @@ gunicorn
 scikit-learn
 python-dotenv
 schedule
-sleep
 datetime
 
