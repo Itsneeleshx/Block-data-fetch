@@ -1,183 +1,171 @@
 # Imports for core functionality
-from time import sleep
 import os
-import schedule
+import time
+import logging
 import json
 import requests
 from datetime import datetime, timezone, timedelta
-import time
-import logging
 import threading
 
-# Imports for handling data processing (if applicable)
-import numpy as np
-import pandas as pd
-
-# Imports for ML (if needed in the future)
-import tensorflow as tf
-from sklearn.preprocessing import LabelEncoder
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
-
-# Imports for Google Sheets
+# Google Sheets imports
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Flask imports for creating the API
-from flask import Flask, jsonify, request
+# Machine learning imports
+import numpy as np
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+from tensorflow.keras.optimizers import Adam
+from sklearn.preprocessing import LabelEncoder
 
-# Environment variable management
-from dotenv import load_dotenv
-
-# Suppress TensorFlow CPU logs (if applicable)
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# Logging configuration
+logging.basicConfig(level=logging.INFO)
 
 # Load environment variables
+from dotenv import load_dotenv
 load_dotenv()
 
-# Ensure all required environment variables are set
-required_vars = ["GOOGLE_CREDENTIALS", "OKLINK_API_KEY"]
+# Validate environment variables
+required_vars = ["GOOGLE_CREDENTIALS", "OKLINK_API_KEY", "GOOGLE_SHEET_NAME"]
 for var in required_vars:
     if not os.getenv(var):
         raise EnvironmentError(f"Environment variable '{var}' is not set.")
 
 # Google Sheets setup
-try:
-    credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
-    credentials = Credentials.from_service_account_info(
-        credentials_info,
-        scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-    )
-    client = gspread.authorize(credentials)
-except json.JSONDecodeError as e:
-    raise ValueError("GOOGLE_CREDENTIALS environment variable contains invalid JSON.") from e
-
-# Set default Google Sheet name
-sheet_name = os.getenv("GOOGLE_SHEET_NAME", "91club-api")
-sheet = client.open(sheet_name).sheet1
+credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+credentials = Credentials.from_service_account_info(
+    credentials_info,
+    scopes=["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"],
+)
+client = gspread.authorize(credentials)
+sheet = client.open(os.getenv("GOOGLE_SHEET_NAME")).sheet1
 
 # OKLink API setup
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
 API_KEY = os.getenv("OKLINK_API_KEY")
 CHAIN_SHORT_NAME = "TRON"
 
-# Logging configuration
-logging.basicConfig(level=logging.INFO)
-
-# Flask app setup
-app = Flask(__name__)
-
-# Global variable to store the LSTM model (loaded once)
+# Global variables
+SEQUENCE_LENGTH = 30
 lstm_model = None
+sequence = []
+latest_prediction = None
 
-# Ensure global variables are defined
-sequence = []  # Store historical sequence of last digits
-SEQUENCE_LENGTH = 30  # Length of sequence for LSTM input
-latest_probability = None  # Store the latest prediction
 
-# Function to load the LSTM model
-def load_lstm_model():
+# Function: Load or create the LSTM model
+def initialize_lstm_model(input_shape=(SEQUENCE_LENGTH, 1)):
     global lstm_model
-    if lstm_model is None:
-        lstm_model = tf.keras.models.load_model("model.h5")
-        print("LSTM model loaded successfully.")
-
-# Function to log predictions to Google Sheets
-def log_to_google_sheet_prediction(predicted_digit, probabilities):
-    timestamp = datetime.datetime.now().isoformat()
-    sheet.append_row([timestamp, "Prediction", predicted_digit, probabilities.tolist()])
-
-# Function to process LSTM predictions
-def process_prediction(last_digit):
-    global sequence, latest_probability, lstm_model
-
-    # 1. Update the historical sequence with the new last digit
-    sequence.append(last_digit)
-    
-    # 2. Ensure the sequence has a fixed length (e.g., 30 digits max)
-    if len(sequence) > SEQUENCE_LENGTH:
-        sequence.pop(0)  # Keep only the most recent SEQUENCE_LENGTH digits
-
-    # 3. Pad sequence if it's shorter than SEQUENCE_LENGTH
-    if len(sequence) < SEQUENCE_LENGTH:
-        padded_sequence = [0] * (SEQUENCE_LENGTH - len(sequence)) + sequence
+    if os.path.exists("model.h5"):
+        lstm_model = load_model("model.h5")
+        logging.info("LSTM model loaded from disk.")
     else:
-        padded_sequence = sequence
+        lstm_model = Sequential([
+            LSTM(50, activation='relu', input_shape=input_shape, return_sequences=True),
+            Dropout(0.2),
+            LSTM(50, activation='relu'),
+            Dropout(0.2),
+            Dense(10, activation='softmax')
+        ])
+        lstm_model.compile(optimizer=Adam(), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        logging.info("New LSTM model created.")
 
-    # 4. Format the sequence data for LSTM input (reshape as 3D array)
-    input_data = np.array(padded_sequence).reshape(1, SEQUENCE_LENGTH, 1)
 
-    # 5. Get the prediction from the LSTM model
-    probabilities = lstm_model.predict(input_data)
-    predicted_digit = np.argmax(probabilities)  # Get the digit with the highest probability
-
-    # 6. Update the latest probability and log prediction to Google Sheet
-    latest_probability = {"digit": predicted_digit, "probabilities": probabilities.tolist()}
-    log_to_google_sheet_prediction(predicted_digit, probabilities)
-
-# Route: Home endpoint
-@app.route('/')
-def index():
-    return jsonify({"message": "Welcome to the Flask API"})
-
-# Route: Fetch block data
-@app.route('/get_block', methods=['GET'])
-def get_block():
+# Function: Log data to Google Sheets
+def log_to_google_sheet(block_height, block_hash, last_digit):
     try:
-        # Calculate target timestamp
-        target_time, target_timestamp_ms = calculate_target_timestamp()
-
-        # Fetch block height
-        block_height, block_time = get_block_height_by_time(target_timestamp_ms)
-        if block_height is None or block_time is None:
-            return jsonify({"error": "Failed to fetch block data"}), 500
-
-        # Fetch block hash
-        block_hash = get_block_hash_by_height(block_height)
-        if block_hash is None:
-            return jsonify({"error": "Failed to fetch block hash"}), 500
-
-        # Convert the last character of the block hash to an integer
-        try:
-            last_digit = int(block_hash[-1], 16)
-        except ValueError as e:
-            logging.error(f"Error converting block hash to last digit: {e}")
-            last_digit = None
-
-        # Update Google Sheet with the last digit
-        if last_digit is not None:
-            try:
-                sheet.append_row([str(datetime.now()), block_height, block_hash, last_digit])
-                logging.info(f"Last digit {last_digit} sent to Google Sheet successfully.")
-            except Exception as e:
-                logging.error(f"Error updating Google Sheet: {str(e)}")
-                return jsonify({"error": "Failed to update Google Sheet"}), 500
-
-            # Process prediction
-            process_prediction(last_digit)
-            predicted_next_digit = latest_probability["digit"]
-
-            return jsonify({
-                "block_height": block_height,
-                "block_hash": block_hash,
-                "last_digit": last_digit,
-                "predicted_next_digit": predicted_next_digit
-            })
-        else:
-            logging.warning("Invalid last digit. Skipping Google Sheet update and prediction.")
-            return jsonify({"error": "Invalid last digit"}), 500
-
+        timestamp = datetime.utcnow().isoformat()
+        sheet.append_row([timestamp, block_height, block_hash, last_digit])
+        logging.info(f"Logged data to Google Sheets: {block_height}, {block_hash}, {last_digit}")
     except Exception as e:
-        logging.error(f"Error fetching block: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Failed to log data to Google Sheets: {str(e)}")
 
-# Route: Get the latest prediction
-@app.route('/get-latest-prediction', methods=['GET'])
-def get_latest_prediction():
-    return jsonify({"latest_probability": latest_probability})
 
-# Ensure the model is loaded at startup
-load_lstm_model()
+# Function: Fetch data from OKLink API
+def fetch_block_data():
+    target_time, target_timestamp_ms = calculate_target_timestamp()
+    params = {"chainShortName": CHAIN_SHORT_NAME, "time": target_timestamp_ms}
+    headers = {"Ok-Access-Key": API_KEY}
+
+    # Fetch block height
+    block_height_response = requests.get(f"{API_BASE_URL}/block/block-height-by-time", headers=headers, params=params)
+    if block_height_response.status_code != 200:
+        logging.error(f"Failed to fetch block height: {block_height_response.text}")
+        return None, None, None
+
+    block_height_data = block_height_response.json().get("data", [])
+    if not block_height_data:
+        logging.error("No block height data available.")
+        return None, None, None
+
+    block_height = block_height_data[0]["height"]
+
+    # Fetch block hash
+    block_hash_response = requests.get(f"{API_BASE_URL}/block/block-fills", headers=headers, params={"height": block_height})
+    if block_hash_response.status_code != 200:
+        logging.error(f"Failed to fetch block hash: {block_hash_response.text}")
+        return None, None, None
+
+    block_hash_data = block_hash_response.json().get("data", [])
+    if not block_hash_data:
+        logging.error("No block hash data available.")
+        return None, None, None
+
+    block_hash = block_hash_data[0]["hash"]
+    last_digit = int(block_hash[-1], 16) if block_hash[-1].isdigit() else 0
+
+    return block_height, block_hash, last_digit
+
+
+# Function: Preprocess data for LSTM
+def preprocess_data():
+    records = sheet.get_all_records()
+    if not records:
+        return None, None
+
+    data = [int(row["Last Digit"]) for row in records if "Last Digit" in row]
+    if len(data) < SEQUENCE_LENGTH:
+        return None, None
+
+    sequences = []
+    labels = []
+    for i in range(len(data) - SEQUENCE_LENGTH):
+        sequences.append(data[i:i + SEQUENCE_LENGTH])
+        labels.append(data[i + SEQUENCE_LENGTH])
+
+    sequences = np.array(sequences).reshape(-1, SEQUENCE_LENGTH, 1)
+    labels = np.array(labels)
+
+    return sequences, labels
+
+
+# Function: Train LSTM model
+def train_lstm_model():
+    sequences, labels = preprocess_data()
+    if sequences is None or labels is None:
+        logging.warning("Not enough data for training.")
+        return
+
+    lstm_model.fit(sequences, labels, epochs=1, batch_size=32, verbose=1)
+    lstm_model.save("model.h5")
+    logging.info("LSTM model trained and saved.")
+
+
+# Function: Predict the next digit
+def predict_next_digit():
+    global latest_prediction
+    sequences, _ = preprocess_data()
+    if sequences is None:
+        logging.warning("Not enough data for prediction.")
+        return
+
+    input_sequence = sequences[-1].reshape(1, SEQUENCE_LENGTH, 1)
+    probabilities = lstm_model.predict(input_sequence)
+    predicted_digit = np.argmax(probabilities)
+    prediction_percentage = probabilities[0][predicted_digit] * 100
+
+    latest_prediction = {"digit": predicted_digit, "probability": prediction_percentage}
+    logging.info(f"Predicted next digit: {predicted_digit} ({prediction_percentage:.2f}%)")
+
 
 # Function: Calculate target timestamp
 def calculate_target_timestamp():
@@ -187,172 +175,64 @@ def calculate_target_timestamp():
         target_time += timedelta(minutes=1)
     return target_time, int(target_time.timestamp() * 1000)
 
-# Function: Fetch block height by time
-def get_block_height_by_time(target_timestamp_ms):
-    delay = 8  # Wait to ensure the block is indexed
-    logging.info(f"Delaying for {delay} seconds to ensure the block is created...")
-    time.sleep(delay)
-
-    params = {"chainShortName": CHAIN_SHORT_NAME, "time": target_timestamp_ms}
-    headers = {"Ok-Access-Key": API_KEY}
-    url = f"{API_BASE_URL}/block/block-height-by-time"
-    response = requests.get(url, headers=headers, params=params)
-    response_data = response.json()
-
-    if response.status_code == 200 and response_data["code"] == "0":
-        block_data = response_data.get("data", [])
-        if block_data:
-            block_height = block_data[0]["height"]
-            block_time = int(block_data[0]["blockTime"])
-            return int(block_height), datetime.fromtimestamp(block_time / 1000, tz=timezone.utc)
-    logging.error(f"Error fetching block height: {response.text}")
-    return None, None
-
-# Function: Fetch block hash by height
-def get_block_hash_by_height(block_height):
-    params = {"chainShortName": CHAIN_SHORT_NAME, "height": block_height}
-    headers = {"Ok-Access-Key": API_KEY}
-    url = f"{API_BASE_URL}/block/block-fills"
-    response = requests.get(url, headers=headers, params=params)
-    response_data = response.json()
-
-    if response.status_code == 200 and response_data["code"] == "0":
-        block_data = response_data.get("data", [])
-        if block_data:
-            block_hash = block_data[0]["hash"]
-            return block_hash
-    logging.error(f"Error fetching block hash: {response.text}")
-    return None
-
-
-
-# Extract the last numerical digit
-def extract_last_numerical_digit(block_hash):
-    for char in reversed(block_hash):
-        if char.isdigit():
-            return char
-    return None
-
-# Function to fetch data from Google Sheets
-def fetch_data():
-    data = pd.DataFrame(sheet.get_all_records())
-    if 'Last Numerical Digit' not in data.columns:
-        raise ValueError("The column 'Last Numerical Digit' is missing in the data.")
-    return data
-
-# Preprocess data for LSTM
-def preprocess_data(data, sequence_length=9):
-    data['Last Numerical Digit'] = pd.to_numeric(data['Last Numerical Digit'], errors='coerce').fillna(0).astype(int)
-    data['Category'] = data['Last Numerical Digit'].apply(lambda x: 0 if x <= 4 else 1)
-    sequences, labels = [], []
-    for i in range(len(data) - sequence_length):
-        sequences.append(data['Category'].iloc[i:i + sequence_length].values)
-        labels.append(data['Category'].iloc[i + sequence_length])
-    return np.array(sequences), np.array(labels)
-
-# Build the LSTM model
-def build_model(input_shape):
-    model = Sequential()
-    model.add(LSTM(50, activation='relu', input_shape=input_shape, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(50, activation='relu'))
-    model.add(Dropout(0.2))
-    model.add(Dense(1, activation='sigmoid'))
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    return model
-
-# Train the LSTM model
-def train_model(model, X, y, epochs=10, batch_size=32):
-    model.fit(X, y, epochs=epochs, batch_size=batch_size, verbose=2)
-    return model
-
-# Predict the next digit and category
-def predict_next_digit(model, sequence):
-    sequence = np.expand_dims(sequence, axis=0)
-    sequence = np.expand_dims(sequence, axis=2)
-    prob = model.predict(sequence)[0][0]
-    category = 'Small' if prob <= 0.5 else 'Big'
-    predicted_digit = np.round(prob * 9).astype(int)
-    return predicted_digit, category, prob * 100
 
 # Main function
 def main():
-    sequence_length = 9
-    try:
-        # Fetch and preprocess initial data
-        data = fetch_data()
-        X, y = preprocess_data(data, sequence_length=sequence_length)
-        X = np.expand_dims(X, axis=2)
-        model = build_model(input_shape=(X.shape[1], X.shape[2]))
-        model = train_model(model, X, y, epochs=20, batch_size=32)
+    initialize_lstm_model()
 
+    def log_and_train():
+        """Handles data fetching, logging to Google Sheets, and training the LSTM model."""
         while True:
-            target_time, target_timestamp_ms = calculate_target_timestamp()
-            while datetime.now(timezone.utc) < target_time:
-                time.sleep(0.1)
+            try:
+                # Fetch block data at the current time
+                block_height, block_hash, last_digit = fetch_block_data()
+                if block_height and block_hash and last_digit is not None:
+                    # Log data to Google Sheets
+                    log_to_google_sheet(block_height, block_hash, last_digit)
 
-            block_height, block_time = get_block_height_by_time(target_timestamp_ms)
-            if block_height and block_time and block_time.second == 54:
-                block_hash = get_block_hash_by_height(block_height)
-                if block_hash:
-                    last_digit = extract_last_numerical_digit(block_hash)
-                    if last_digit:
-                        sheet.append_row([datetime.now().isoformat(), block_height, last_digit])
-                        data = fetch_data()
-                        X_new, _ = preprocess_data(data, sequence_length=sequence_length)
-                        X_new = np.expand_dims(X_new[-1], axis=0)
-                        X_new = np.expand_dims(X_new, axis=2)
-                        digit, category, prob = predict_next_digit(model, X_new[-1])
-                        print(f"Predicted Next Digit: {digit} ({prob:.2f}%)")
-                        print(f"Predicted Category: {category}")
+                    # Train the LSTM model
+                    train_lstm_model()
+
+                # Sleep for the remaining time of the current minute
+                current_time = datetime.now()
+                next_execution = current_time.replace(second=54, microsecond=0) + timedelta(minutes=1)
+                sleep_time = (next_execution - current_time).total_seconds()
+                time.sleep(sleep_time)
+            except Exception as e:
+                logging.error(f"Error in log_and_train: {str(e)}")
+    
+    def prediction_loop():
+        """Continuously predicts the next digit before the 54th second of each minute."""
+        while True:
+            try:
+                # Predict next digit
+                predict_next_digit()
+
+                # Wait until just before the 54th second of the next minute
+                current_time = datetime.now()
+                next_execution = current_time.replace(second=53, microsecond=500000) + timedelta(minutes=1)
+                sleep_time = (next_execution - current_time).total_seconds()
+                time.sleep(sleep_time)
+            except Exception as e:
+                logging.error(f"Error in prediction_loop: {str(e)}")
+    
+    # Launch both threads simultaneously
+    try:
+        logging.info("Starting the script...")
+        log_train_thread = threading.Thread(target=log_and_train, daemon=True)
+        prediction_thread = threading.Thread(target=prediction_loop, daemon=True)
+
+        log_train_thread.start()
+        prediction_thread.start()
+
+        # Keep the main thread alive
+        while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("Process terminated by user.")
-
-def fetch_and_log_block_data():
-    try:
-        # Calculate target timestamp
-        target_time, target_timestamp_ms = calculate_target_timestamp()
-
-        # Fetch block height
-        block_height, block_time = get_block_height_by_time(target_timestamp_ms)
-        if block_height is None or block_time is None:
-            logging.error("Failed to fetch block data.")
-            return
-
-        # Fetch block hash
-        block_hash = get_block_hash_by_height(block_height)
-        if block_hash is None:
-            logging.error("Failed to fetch block hash.")
-            return
-
-        # Extract last digit of block hash
-        last_digit = int(block_hash[-1], 16)
-
-        # Log last digit to Google Sheets
-        log_to_google_sheet(last_digit)
-
-        # Process prediction using the LSTM model
-        process_prediction(last_digit)
-
-        logging.info(f"Block height: {block_height}, Block time: {block_time}, Block hash: {block_hash}")
+        logging.info("Script terminated by user.")
     except Exception as e:
-        logging.error(f"Error in fetch_and_log_block_data: {str(e)}")
+        logging.error(f"Unexpected error in main: {str(e)}")
 
-# Function to start the scheduling cycle
-def start_cycle():
-    # Schedule the block-fetching process to run every minute at the 54th second
-    schedule.every().minute.at(":54").do(fetch_and_log_block_data)
 
-    # Continuously check for scheduled tasks
-    while True:
-        schedule.run_pending()
-        sleep(1)
-
-# Start the cycle in a separate thread
-background_thread = threading.Thread(target=start_cycle, daemon=True)
-background_thread.start()
-
-# Run Flask app (for local testing only)
 if __name__ == "__main__":
-    app.run(debug=True)
+    main()
