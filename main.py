@@ -97,15 +97,21 @@ def get_block():
             logging.error(f"Error updating Google Sheet: {str(e)}")
             return jsonify({"error": "Failed to update Google Sheet"}), 500
 
-        # Update LSTM input and prediction
-        update_and_predict_lstm(block_hash)
+        # Send last digit to LSTM model and get prediction
+        try:
+            predicted_next_digit = update_and_predict_lstm(last_digit)
+            logging.info(f"LSTM predicted next digit: {predicted_next_digit}")
+        except Exception as e:
+            logging.error(f"Error predicting next digit with LSTM: {str(e)}")
+            return jsonify({"error": "Failed to predict next digit"}), 500
 
-        # Return block details
+        # Return block details with prediction
         response = {
             "block_height": block_height,
             "block_time": block_time.isoformat(),
             "block_hash": block_hash,
-            "last_digit": last_digit
+            "last_digit": last_digit,
+            "predicted_next_digit": predicted_next_digit
         }
         return jsonify(response)
     except Exception as e:
