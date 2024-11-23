@@ -315,6 +315,36 @@ def main():
     except KeyboardInterrupt:
         print("Process terminated by user.")
 
+def fetch_and_log_block_data():
+    try:
+        # Calculate target timestamp
+        target_time, target_timestamp_ms = calculate_target_timestamp()
+
+        # Fetch block height
+        block_height, block_time = get_block_height_by_time(target_timestamp_ms)
+        if block_height is None or block_time is None:
+            logging.error("Failed to fetch block data.")
+            return
+
+        # Fetch block hash
+        block_hash = get_block_hash_by_height(block_height)
+        if block_hash is None:
+            logging.error("Failed to fetch block hash.")
+            return
+
+        # Extract last digit of block hash
+        last_digit = int(block_hash[-1], 16)
+
+        # Log last digit to Google Sheets
+        log_to_google_sheet(last_digit)
+
+        # Process prediction using the LSTM model
+        process_prediction(last_digit)
+
+        logging.info(f"Block height: {block_height}, Block time: {block_time}, Block hash: {block_hash}")
+    except Exception as e:
+        logging.error(f"Error in fetch_and_log_block_data: {str(e)}")
+
 # Function to start the scheduling cycle
 def start_cycle():
     # Schedule the block-fetching process to run every minute at the 54th second
