@@ -72,6 +72,17 @@ CHAIN_SHORT_NAME = "TRON"
 # Logging configuration
 logging.basicConfig(level=logging.INFO)
 
+# Debug Google Credentials Environment Variable
+credentials_info = os.getenv("GOOGLE_CREDENTIALS")
+if credentials_info:
+    try:
+        credentials_dict = json.loads(credentials_info)
+        print("Google credentials parsed successfully.")
+    except json.JSONDecodeError as e:
+        print(f"Error parsing GOOGLE_CREDENTIALS: {e}")
+else:
+    print("GOOGLE_CREDENTIALS environment variable is missing.")
+
 # Flask app setup
 app = Flask(__name__)
 
