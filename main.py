@@ -113,9 +113,14 @@ def get_block():
         if block_hash is None:
             return jsonify({"error": "Failed to fetch block hash"}), 500
 
-        # Extract last digit of block hash (as hexadecimal)
-last_digit = int(block_hash[-1], 16)
-
+        try:
+    # Convert the last character of the block hash to an integer
+    last_digit = int(block_hash[-1], 16)
+except ValueError as e:
+    # Handle invalid conversions (e.g., if block_hash[-1] is not a valid hex character)
+    logging.error(f"Error converting block hash to last digit: {e}")
+    last_digit = None
+    
         # Update Google Sheet with the last digit
         try:
             sheet.append_row([str(datetime.now()), block_height, block_hash, last_digit])
