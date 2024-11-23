@@ -163,9 +163,14 @@ def log_to_google_sheet_prediction(predicted_digit, probabilities):
     timestamp = datetime.datetime.now().isoformat()
     sheet.append_row([timestamp, "Prediction", predicted_digit, probabilities])
 
+# Ensure global variables are defined
+sequence = []  # Store historical sequence of last digits
+SEQUENCE_LENGTH = 30  # Length of sequence for LSTM input
+latest_probability = None  # Store the latest prediction
+
 # Function to process LSTM predictions
 def process_prediction(last_digit):
-    global latest_probability
+    global sequence, latest_probability, lstm_model
 
     # 1. Update the historical sequence with the new last digit
     sequence.append(last_digit)
@@ -174,17 +179,23 @@ def process_prediction(last_digit):
     if len(sequence) > SEQUENCE_LENGTH:
         sequence.pop(0)  # Keep only the most recent SEQUENCE_LENGTH digits
 
-    # 3. Format the sequence data for LSTM input (reshape as 3D array)
-    input_data = np.array(sequence).reshape(1, SEQUENCE_LENGTH, 1)
+    # 3. Pad sequence if it's shorter than SEQUENCE_LENGTH
+    if len(sequence) < SEQUENCE_LENGTH:
+        padded_sequence = [0] * (SEQUENCE_LENGTH - len(sequence)) + sequence
+    else:
+        padded_sequence = sequence
 
-    # 4. Get the prediction from the LSTM model
+    # 4. Format the sequence data for LSTM input (reshape as 3D array)
+    input_data = np.array(padded_sequence).reshape(1, SEQUENCE_LENGTH, 1)
+
+    # 5. Get the prediction from the LSTM model
     probabilities = lstm_model.predict(input_data)
     predicted_digit = np.argmax(probabilities)  # Get the digit with the highest probability
 
-    # 5. Update the latest probability and log prediction to Google Sheet
+    # 6. Update the latest probability and log prediction to Google Sheet
     latest_probability = {"digit": predicted_digit, "probabilities": probabilities.tolist()}
     log_to_google_sheet_prediction(predicted_digit, probabilities)
-
+    
 # Function: Calculate target timestamp
 def calculate_target_timestamp():
     now = datetime.now(timezone.utc)
