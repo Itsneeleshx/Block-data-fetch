@@ -238,11 +238,12 @@ if __name__ == "__main__":
 def get_block():
     # Assuming `latest_probability` stores the latest prediction globally
     try:
+        # Respond with current block data and prediction
         response = {
-            "block_height": current_block_height,  # Ensure this variable is updated in your script
-            "last_digit": current_last_digit,      # Latest block's last digit
-            "predicted_next_digit": latest_probability["digit"],  # Predicted digit
-            "confidence": f"{max(latest_probability['probabilities']) * 100:.2f}%"  # Prediction confidence
+            "block_height": shared_state.get("current_block_height", "N/A"),
+            "last_digit": shared_state.get("current_last_digit", "N/A"),
+            "predicted_next_digit": shared_state.get("latest_prediction", {}).get("digit", "N/A"),
+            "confidence": shared_state.get("latest_prediction", {}).get("confidence", "N/A"),
         }
         return jsonify(response)
     except Exception as e:
