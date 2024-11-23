@@ -3,9 +3,15 @@ import json
 import requests
 from datetime import datetime, timezone, timedelta
 import time
-import gspread
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from sklearn.preprocessing import LabelEncoder
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Dropout
+import gspread  # Google Sheets API
 from google.oauth2.service_account import Credentials
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # For managing environment variables
 
 # Suppress TensorFlow CPU logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
