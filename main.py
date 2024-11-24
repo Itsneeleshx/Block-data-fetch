@@ -300,18 +300,21 @@ if __name__ == "__main__":
     scheduler.add_job(fetch_and_log_block_data, 'cron', second=54)  # Run every minute at second 54
     scheduler.add_job(train_lstm_model, 'interval', minutes=10)     # Run every 10 minutes
 
+    # Import event listener from apscheduler
+    from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
+
+    # Define the job listener
+    def job_listener(event):
+        if event.exception:
+            logging.error(f"Job {event.job_id} failed with exception: {event.exception}")
+        else:
+            logging.info(f"Job {event.job_id} executed successfully.")
+
+    # Add the job listener to the scheduler
+    scheduler.add_listener(job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
+
     # Start the scheduler
     scheduler.start()
-    
-from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
-
-def job_listener(event):
-    if event.exception:
-        logging.error(f"Job {event.job_id} failed with exception: {event.exception}")
-    else:
-        logging.info(f"Job {event.job_id} executed successfully.")
-
-scheduler.add_listener(job_listener, EVENT_JOB_EXECUTED | EVENT_JOB_ERROR)
 
     # Run the Flask app (this will continue running while the scheduler works in the background)
     app.run(debug=True)
