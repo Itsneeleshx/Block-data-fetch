@@ -27,9 +27,6 @@ import gspread
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-# Environment variable management
-from dotenv import load_dotenv
-
 # Flask imports for creating the API
 from flask import Flask, jsonify
 
