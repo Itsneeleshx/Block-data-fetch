@@ -22,6 +22,7 @@ from sklearn.preprocessing import MinMaxScaler
 # Imports for Google Sheets
 import gspread
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
 # Environment variable management
 from dotenv import load_dotenv
