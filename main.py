@@ -245,7 +245,7 @@ def get_block_height_by_time(target_timestamp_ms):
 def get_block_hash_by_height(block_height):
     params = {"chainShortName": CHAIN_SHORT_NAME, "height": block_height}
     headers = {"Ok-Access-Key": API_KEY}
-    url = f"{API_BASE_URL}/block/block-hash"
+    url = f"{API_BASE_URL}/block/block-fills"
     response = requests.get(url, headers=headers, params=params)
     response_data = response.json()
 
