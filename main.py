@@ -312,7 +312,7 @@ if __name__ == "__main__":
     # Start the scheduler
     scheduler.start()
     
-    from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
+from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 
 def job_listener(event):
     if event.exception:
