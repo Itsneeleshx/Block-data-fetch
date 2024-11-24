@@ -40,9 +40,6 @@ shared_state = {}
 # Suppress TensorFlow CPU logs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-# Load environment variables
-load_dotenv()
-
 # Google Sheets setup
 try:
     # Load credentials from the JSON file
