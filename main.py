@@ -7,6 +7,7 @@ from datetime import datetime, timezone, timedelta
 import time
 import logging
 import threading
+from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
