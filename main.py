@@ -287,7 +287,26 @@ def get_block():
     except Exception as e:
         logging.error(f"Error in /get_block: {str(e)}")
         return jsonify({"error": str(e)}), 500
-                
+                          
+# Ensure `periodic_task` is defined before adding it to the scheduler
+def periodic_task():
+    try:
+        logging.info("Starting data fetch at 54th second.")
+        
+        # Calculate target timestamp and fetch data
+        target_time, target_timestamp_ms = calculate_target_timestamp()
+        time.sleep(8)  # Introduce an 8-second delay
+        
+        # Fetch block hash and log last digit
+        fetch_and_log_block_data()
+        
+        # Predict next digit and log it
+        logging.info("Running prediction.")
+        predicted_digit, confidence = predict_next_digit()
+        logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}")
+    except Exception as e:
+        logging.error(f"Error during periodic task: {e}")
+                                                                                                
 # Entry point
 if __name__ == "__main__":
     # Load or create the LSTM model
