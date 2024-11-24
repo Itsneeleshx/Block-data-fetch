@@ -148,6 +148,7 @@ def train_lstm_model():
         logging.error(f"Error in train_lstm_model: {str(e)}")
 
 # Function to fetch block data and log to Google Sheets
+# Function to fetch block data and log to Google Sheets
 def fetch_and_log_block_data():
     try:
         # Calculate target timestamp
@@ -190,6 +191,16 @@ def fetch_and_log_block_data():
 
     except Exception as e:
         logging.error(f"Error in fetch_and_log_block_data: {str(e)}")
+
+
+# Background task for periodic updates
+def background_task():
+    while True:
+        try:
+            fetch_and_log_block_data()
+        except Exception as e:
+            logging.error(f"Error in background task: {str(e)}")
+        time.sleep(10)  # Adjust interval as needed
 
 # Predict the next digit and log the probability
 def predict_next_digit():
@@ -271,8 +282,10 @@ def start_cycle():
 # Route to fetch block data and prediction
 @app.route('/get_block', methods=['GET'])
 def get_block():
-    # Assuming `latest_probability` stores the latest prediction globally
     try:
+        # Log access to the endpoint
+        logging.info(f"/get_block accessed. Current shared state: {shared_state}")
+
         # Respond with current block data and prediction
         response = {
             "block_height": shared_state.get("current_block_height", "N/A"),
@@ -282,6 +295,7 @@ def get_block():
         }
         return jsonify(response)
     except Exception as e:
+        logging.error(f"Error in /get_block: {str(e)}")
         return jsonify({"error": str(e)}), 500
                 
 # Entry point
