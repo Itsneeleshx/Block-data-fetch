@@ -277,12 +277,17 @@ def home():
     return jsonify({"message": "Welcome to the LSTM prediction API"})
 
 # Start background tasks
-def start_cycle():
-    schedule.every().minute.at(":54").do(lambda: threading.Thread(target=fetch_and_log_block_data).start())
-    schedule.every(10).minutes.do(lambda: threading.Thread(target=train_lstm_model).start())
-    while True:
-        schedule.run_pending()
-        sleep(1)
+def start_scheduler():
+    scheduler = BackgroundScheduler()
+
+    # Schedule fetch_and_log_block_data every 10 seconds
+    scheduler.add_job(fetch_and_log_block_data, IntervalTrigger(seconds=10))
+
+    # Schedule train_lstm_model every 10 minutes
+    scheduler.add_job(train_lstm_model, CronTrigger(minute='*/10'))
+
+    scheduler.start()
+    logging.info("APScheduler started.")
 
 # Route to fetch block data and prediction
 @app.route('/get_block', methods=['GET'])
@@ -305,7 +310,18 @@ def get_block():
                 
 # Entry point
 if __name__ == "__main__":
+    # Load or create the LSTM model
     load_or_create_model()
-    background_thread = threading.Thread(target=start_cycle, daemon=True)
-    background_thread.start()
+
+    # Initialize the scheduler
+    scheduler = BackgroundScheduler()
+
+    # Schedule tasks
+    scheduler.add_job(fetch_and_log_block_data, 'cron', second=54)  # Run every minute at second 54
+    scheduler.add_job(train_lstm_model, 'interval', minutes=10)     # Run every 10 minutes
+
+    # Start the scheduler
+    scheduler.start()
+
+    # Run the Flask app (this will continue running while the scheduler works in the background)
     app.run(debug=True)
