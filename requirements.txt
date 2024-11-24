@@ -12,3 +12,4 @@ scikit-learn
 python-dotenv
 schedule
 google-api-python-client
+apscheduler
