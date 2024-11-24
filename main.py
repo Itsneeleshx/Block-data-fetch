@@ -11,6 +11,11 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
+import googleapiclient.discovery
+import logging
+
+logging.getLogger('googleapiclient').setLevel(logging.DEBUG)
+
 # Imports for handling data processing
 import numpy as np
 import pandas as pd
