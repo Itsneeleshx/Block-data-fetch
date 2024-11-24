@@ -7,7 +7,6 @@ from datetime import datetime, timezone, timedelta
 import time
 import logging
 import threading
-from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
@@ -44,10 +43,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # Load environment variables
 load_dotenv()
 
-# Ensure the OKLINK_API_KEY is set
-if not os.getenv("OKLINK_API_KEY"):
-    raise EnvironmentError("Environment variable 'OKLINK_API_KEY' is not set.")
-    
 # Google Sheets setup
 try:
     # Load credentials from the JSON file
