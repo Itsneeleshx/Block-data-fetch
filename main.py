@@ -52,18 +52,23 @@ for var in required_vars:
 
 # Google Sheets setup
 try:
-    credentials_info = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
-    credentials = Credentials.from_service_account_info(
-        credentials_info,
+    # Load credentials from the JSON file
+    credentials_file = "club-code-442100-85744d72b31e.json"  # Path to your JSON file
+    credentials = Credentials.from_service_account_file(
+        credentials_file,
         scopes=['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
     )
     client = gspread.authorize(credentials)
-except json.JSONDecodeError as e:
-    raise ValueError("GOOGLE_CREDENTIALS environment variable contains invalid JSON.") from e
+except FileNotFoundError:
+    raise ValueError("The credentials.json file was not found. Ensure it's in the correct directory.")
+except Exception as e:
+    raise ValueError(f"Error loading Google Sheets credentials: {str(e)}")
 
 # Set default Google Sheet name
-sheet_name = os.getenv("GOOGLE_SHEET_NAME", "91club-api")
+sheet_name = "91club-api"  # Update with your sheet name
 sheet = client.open(sheet_name).sheet1
+
+
 
 # OKLink API setup
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
