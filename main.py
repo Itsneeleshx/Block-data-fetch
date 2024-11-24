@@ -284,8 +284,8 @@ def start_scheduler():
     # Schedule fetch_and_log_block_data every 10 seconds
     scheduler.add_job(fetch_and_log_block_data, IntervalTrigger(seconds=10))
 
-    # Schedule train_lstm_model every 10 minutes
-    scheduler.add_job(train_lstm_model, CronTrigger(minute='*/10'))
+    # Schedule train_lstm_model every 54 seconds 
+    scheduler.add_job(train_lstm_model, CronTrigger(second=54))
 
     scheduler.start()
     logging.info("APScheduler started.")
