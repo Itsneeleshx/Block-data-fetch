@@ -44,12 +44,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # Load environment variables
 load_dotenv()
 
-# Ensure all required environment variables are set
-required_vars = ["GOOGLE_CREDENTIALS", "OKLINK_API_KEY"]
-for var in required_vars:
-    if not os.getenv(var):
-        raise EnvironmentError(f"Environment variable '{var}' is not set.")
-
+# Ensure the OKLINK_API_KEY is set
+if not os.getenv("OKLINK_API_KEY"):
+    raise EnvironmentError("Environment variable 'OKLINK_API_KEY' is not set.")
+    
 # Google Sheets setup
 try:
     # Load credentials from the JSON file
