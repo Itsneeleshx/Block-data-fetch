@@ -1,7 +1,6 @@
 # Imports for core functionality
 from time import sleep
 import os
-import schedule
 import json
 import requests
 from datetime import datetime, timezone, timedelta
