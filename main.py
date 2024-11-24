@@ -1,11 +1,13 @@
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
+from flask_ngrok import run_with_ngrok  # Ngrok integration
 import gspread
 import logging
 
 # Initialize Flask app
 app = Flask(__name__)
+run_with_ngrok(app)  # Add Ngrok to Flask app
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
@@ -73,5 +75,5 @@ if __name__ == "__main__":
     # Start the scheduler
     scheduler.start()
 
-    # Run the Flask app
+    # Run the Flask app with Ngrok integration
     app.run(debug=True)
