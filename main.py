@@ -83,6 +83,12 @@ if credentials_info:
 else:
     print("GOOGLE_CREDENTIALS environment variable is missing.")
 
+# Google Sheets API Initialization (Add this code here)
+credentials = Credentials.from_service_account_info(credentials_dict)
+service = build('sheets', 'v4', credentials=credentials)
+sheet_id = "YOUR_GOOGLE_SHEET_ID"  # Replace with your actual sheet ID
+sheet = service.spreadsheets()
+
 # Flask app setup
 app = Flask(__name__)
 
@@ -168,6 +174,15 @@ def fetch_and_log_block_data():
 
         # Extract last digit of block hash
         last_digit = int(block_hash[-1], 16)
+        
+        # Google Sheets API Append Row (Add this code here)
+        response = sheet.values().append(
+            spreadsheetId=sheet_id,
+            range="Sheet1",  # Adjust to match your sheet name
+            valueInputOption="RAW",
+            body={"values": [[datetime.now().isoformat(), block_height, last_digit]]},
+        ).execute()
+        logging.info(f"Google Sheets API response: {response}")
 
         # Log last digit to Google Sheets
         sheet.append_row([datetime.now().isoformat(), block_height, last_digit])
