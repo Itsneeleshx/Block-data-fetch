@@ -297,7 +297,34 @@ if __name__ == "__main__":
     scheduler = BackgroundScheduler()
 
     # Schedule tasks
-    scheduler.add_job(fetch_and_log_block_data, 'cron', second=54)  # Run every minute at second 54
+    def periodic_task():
+    while True:
+        now = datetime.now()
+        # Wait until the 54th second of the current minute
+        if now.second == 54:
+            try:
+                logging.info("Starting data fetch at 54th second.")
+                
+                # Calculate target timestamp and fetch data
+                target_time, target_timestamp_ms = calculate_target_timestamp()
+                time.sleep(8)  # Introduce an 8-second delay
+                
+                # Fetch block hash and log last digit
+                fetch_and_log_block_data()
+                
+                # Predict next digit and log it
+                logging.info("Running prediction.")
+                predicted_digit, confidence = predict_next_digit()
+                logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}")
+                
+                # Wait until the next cycle
+                while datetime.now().second != 54:
+                    time.sleep(0.5)
+            except Exception as e:
+                logging.error(f"Error during periodic task: {e}")
+        else:
+            time.sleep(0.5)  # Poll every half-second to minimize CPU usage
+    
     scheduler.add_job(train_lstm_model, 'interval', minutes=10)     # Run every 10 minutes
 
     # Import event listener from apscheduler
