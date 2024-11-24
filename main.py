@@ -277,19 +277,6 @@ def get_block_hash_by_height(block_height):
 def home():
     return jsonify({"message": "Welcome to the LSTM prediction API"})
 
-# Start background tasks
-def start_scheduler():
-    scheduler = BackgroundScheduler()
-
-    # Schedule fetch_and_log_block_data every 10 seconds
-    scheduler.add_job(fetch_and_log_block_data, IntervalTrigger(seconds=10))
-
-    # Schedule train_lstm_model every 54 seconds 
-    scheduler.add_job(train_lstm_model, CronTrigger(second=54))
-
-    scheduler.start()
-    logging.info("APScheduler started.")
-
 # Route to fetch block data and prediction
 @app.route('/get_block', methods=['GET'])
 def get_block():
