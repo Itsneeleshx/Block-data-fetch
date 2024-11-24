@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "club-code-442100",
+  "private_key_id": "85744d72b31e95c611de236f26bfedfd579dc443",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDitLbcIGnvIvij\noD2RnfMU3NmXTLLpyYDfKTJEeK7U71nFlizHNOBqsp51YwdBuYhWHzVFHdDkdM45\nEQWSVjMqztA3IzZ/n6H0R/L54Boojhniu24PB4ZWgcHXn9PpPv6S5uQT9ye13K0S\nVjVXfnYWOmazlFV/LjhXBuurvI/Wnd/c1voyH1QDP95dTznKRKiceFjwyu+UDL6v\n6J+S0uDWLiaZCoDBtXkp6+iiro6x0XJH4xpkb1rUTli/HAe/PXMlqyrn789HQhES\now7tpNO6uh/SETznP/Csmm31E67UM+2YaVYITEEwh0qj96MX7x/f07bbBjCrzP5u\neA/tPD61AgMBAAECggEABZTYaav8n7AXOgQQb/zZBrr3OnPfdcUJwLTFcY0dFM39\nwlETsiXZnpbeMtqoy5PzSNeE2rpEsdM0XpBOOE+Z++RSmQDrbxHxjU+WKlO7oSL6\nfSwLJiCTzJ5uNM5RC82Ku/gmRl2P4zjXI/vuXUSWSK7QZ3xv7G0pYu8fLz+5tNlr\nU1hyclJUnIhz+5VCP3VVeSK13sN/4Df6bl1rhanMLMHshoxHsENhgqrJNFyHbRo5\nPWHNNTYcg7VXL6OEBSHxHb/NB2/cnHyyKNHVJ5cJZIkjLdXOCev/gsr24YWX0LZ1\n4hDPKtbHgIcnhdwXrPrSpRQiKH/TA93KY7NnNFEOgwKBgQD264G3HA7fz48CDoJK\nYP8l4ESv7+QAV98JtJBpIA5N1JOikgrMta+XwlRGjp07ZYknsPP6GZx1xJelSkDT\n5870E++/t37VfC0FWwPZ8ofuvsN7epq7YJp3kCnnzAlmCNOFq7szILi98yYm3ieb\ngJ+V3ZvnWnkFfHAj/b1BWZkMowKBgQDrCunhoCKNSsQOXBb6PrzBaUWq1Q2L4ORh\ntaL1x9bEQwkjFvmi++hnyHzCqO8q5de/B7xXG5JIpmK040CkJnN0aJzAv88iMlJs\nqCdXqSJKrLUUrZ5ZljB4lsV1qWa6+2g+ltBexpVIfIB3n3pEgWppk/vMi71mQY9s\n9yYTt9mkxwKBgQDMECIpxGR+jzivCHKhKbxz/v6FMIqLxhMsIC/g0X9Az1gb2PpX\n6CdwEkg375D+D5HkXZeksBngMlLpZY5iEoe0q+1N0kZeBLvoWym5q3iv1LQVjmPm\nS5YdDeW0DaoOy2iUZjLVtEs5oIN9R8gP+aLp5jX8Y4b1A7xh4kfQhE26ZQKBgCBT\n8fM8iUQRwoGPHQHyWxfnGNP0VdalagQebXmMsPdxmPIgmNlX+JE9vBsyDSNDVbdK\noxcADdC8QdtLXnq1Zy/dq6G/QAgeD8QuJKsj8jl/I7DiaGM+CxCq/CHA2QZiyeXB\n7Ir8mU/NAAZ0AuclPbOjzQBHQBeucMG2BKC1qtPFAoGAIS/kEFh/dJLUn5cpwFMz\nFEWP2brDt8fiKxMSsf6l/qnTH61crNKPEPodcygc2u9qknTP4epQDmQJSWT+0gTJ\nfu+01nDWksLPPE0foYp/qof7SGEk4GP8l3XXtDBsMBo9FyWF1Gd6E3ZZc8+yc19m\nak2kzbaqT071JUehZIw8f78=\n-----END PRIVATE KEY-----\n",
+  "client_email": "club-cloud@club-code-442100.iam.gserviceaccount.com",
+  "client_id": "105751651556666546627",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/club-cloud%40club-code-442100.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
