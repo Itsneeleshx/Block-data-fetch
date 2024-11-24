@@ -151,7 +151,6 @@ def train_lstm_model():
         logging.error(f"Error in train_lstm_model: {str(e)}")
 
 # Function to fetch block data and log to Google Sheets
-# Function to fetch block data and log to Google Sheets
 def fetch_and_log_block_data():
     try:
         # Calculate target timestamp
