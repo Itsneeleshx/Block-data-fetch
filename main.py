@@ -70,7 +70,7 @@ sheet = client.open(sheet_name).sheet1
 
 # OKLink API setup
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
-API_KEY = os.getenv("OKLINK_API_KEY")
+API_KEY = "c8f46c6a-11f6-4d1a-bb23-cfa0f55dfa73"
 CHAIN_SHORT_NAME = "TRON"
 
 # Logging configuration
