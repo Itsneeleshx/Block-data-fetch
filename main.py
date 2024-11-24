@@ -1,13 +1,16 @@
+# Imports
 from apscheduler.events import EVENT_JOB_EXECUTED, EVENT_JOB_ERROR
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask
-from flask_ngrok import run_with_ngrok  # Ngrok integration
+from flask_ngrok import run_with_ngrok
 import gspread
 import logging
 
 # Initialize Flask app
 app = Flask(__name__)
-run_with_ngrok(app)  # Add Ngrok to Flask app
+
+# Enable ngrok for Flask app
+run_with_ngrok(app)
 
 # Initialize logging
 logging.basicConfig(level=logging.DEBUG)
@@ -26,7 +29,7 @@ except Exception as e:
 # Function to fetch and log block data (stub example)
 def fetch_and_log_block_data():
     try:
-        # Sample data to log in the sheet
+        # Sample data to log in the sheet (replace with actual data from your API)
         data = {
             "timestamp": "2024-11-24 15:30:00",  # Replace with actual data
             "block_height": 12345678,           # Replace with actual data
@@ -75,5 +78,5 @@ if __name__ == "__main__":
     # Start the scheduler
     scheduler.start()
 
-    # Run the Flask app with Ngrok integration
-    app.run(debug=True)
+    # Run the Flask app with ngrok
+    app.run()
