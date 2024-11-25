@@ -291,21 +291,40 @@ def get_block():
 # Ensure `periodic_task` is defined before adding it to the scheduler
 def periodic_task():
     try:
-        logging.info("Starting data fetch at 54th second.")
-        
-        # Calculate target timestamp and fetch data
+        # Calculate the target timestamp
         target_time, target_timestamp_ms = calculate_target_timestamp()
-        
-        # Wait for 8 seconds to ensure the block is indexed
-        time.sleep(8)
-        
-        # Fetch block height and log the last digit
-        fetch_and_log_block_data()
-        
-        # Predict the next digit and log it
-        logging.info("Running prediction.")
-        predicted_digit, confidence = predict_next_digit()
-        logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}")
+        logging.info(f"Target Timestamp (54th second): {target_time}, {target_timestamp_ms} ms")
+
+        # Wait until the 54th second
+        while datetime.now(timezone.utc) < target_time:
+            time.sleep(0.1)  # Check every 100ms to minimize CPU usage
+
+        logging.info("54th second reached. Introducing 8-second delay...")
+        time.sleep(8)  # Ensure the block is created and indexed
+
+        # Fetch block height for the target timestamp
+        block_height, block_time = get_block_height_by_time(target_timestamp_ms)
+        if block_height and block_time:
+            if block_time.second == 54:
+                logging.info(f"Block Height at {block_time}: {block_height}")
+
+                # Fetch block hash
+                block_hash = get_block_hash_by_height(block_height)
+                if block_hash:
+                    logging.info(f"Block Hash for Height {block_height}: {block_hash}")
+
+                    # Extract last numerical digit
+                    last_digit = extract_last_numerical_digit(block_hash)
+                    if last_digit:
+                        logging.info(f"Last Numerical Digit in Block Hash: {last_digit}")
+                    else:
+                        logging.error("No numerical digit found in block hash.")
+                else:
+                    logging.error("Failed to fetch block hash.")
+            else:
+                logging.error(f"Block timestamp mismatch. Expected: 54s, Found: {block_time.second}s")
+        else:
+            logging.error("Failed to fetch block height.")
     except Exception as e:
         logging.error(f"Error during periodic task: {e}")
 
