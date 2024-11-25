@@ -317,6 +317,21 @@ def periodic_task():
                     last_digit = extract_last_numerical_digit(block_hash)
                     if last_digit:
                         logging.info(f"Last Numerical Digit in Block Hash: {last_digit}")
+
+                        # Send data to Google Sheets
+                        try:
+                            send_data_to_google_sheets(block_height, last_digit)
+                            logging.info("Data sent to Google Sheets successfully.")
+                        except Exception as e:
+                            logging.error(f"Failed to send data to Google Sheets: {e}")
+
+                        # Predict next digit
+                        try:
+                            logging.info("Predicting next digit...")
+                            predicted_digit, confidence = predict_next_digit()
+                            logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}")
+                        except Exception as e:
+                            logging.error(f"Error predicting next digit: {e}")
                     else:
                         logging.error("No numerical digit found in block hash.")
                 else:
@@ -327,7 +342,7 @@ def periodic_task():
             logging.error("Failed to fetch block height.")
     except Exception as e:
         logging.error(f"Error during periodic task: {e}")
-
+        
 # Entry point
 if __name__ == "__main__":
     # Load or create the LSTM model
