@@ -63,7 +63,19 @@ except Exception as e:
 sheet_name = "91club-api"  # Update with your sheet name
 sheet = client.open(sheet_name).sheet1
 
+# define send data to sheet
+def send_data_to_google_sheets(data):
+    """
+    Send data to Google Sheets.
 
+    :param data: A list of data to append, e.g., [timestamp, block_height, last_digit].
+    """
+    try:
+        # Append the data to the sheet
+        sheet.append_row(data)
+        logging.info(f"Data sent to Google Sheets: {data}")
+    except Exception as e:
+        logging.error(f"Failed to send data to Google Sheets: {e}")
 
 # OKLink API setup
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
