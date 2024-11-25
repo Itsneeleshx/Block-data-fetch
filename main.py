@@ -137,16 +137,32 @@ def fetch_and_preprocess_data():
 
 # Train or retrain the LSTM model
 def train_lstm_model():
+    """
+    Train or retrain the LSTM model using data from Google Sheets.
+    """
     global lstm_model
     try:
+        # Fetch and preprocess data
         sequences, labels = fetch_and_preprocess_data()
-        if len(sequences) == 0:
+        
+        # Check if there is enough data to train
+        if len(sequences) == 0 or len(labels) == 0:
             logging.warning("Not enough data to train the model.")
             return
 
+        # Train the model
+        logging.info("Training the LSTM model...")
         lstm_model.fit(sequences, labels, epochs=5, batch_size=32, verbose=2)
+        
+        # Save the updated model
         lstm_model.save(MODEL_PATH)
-        logging.info("LSTM model trained and saved.")
+        logging.info("LSTM model retrained and saved.")
+        
+        # Save the scaler for consistency
+        scaler_file = "scaler.pkl"
+        with open(scaler_file, 'wb') as f:
+            pickle.dump(scaler, f)
+        logging.info("Scaler saved for consistency.")
     except Exception as e:
         logging.error(f"Error in train_lstm_model: {str(e)}")
 
