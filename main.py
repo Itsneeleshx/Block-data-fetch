@@ -163,7 +163,7 @@ def fetch_and_log_block_data():
             return
 
         # Extract last digit of block hash
-        last_digit = int(block_hash[-1], 16)
+        last_digit = int(block_hash[-1], 16) % 10  # Ensure a single-digit last digit
         
         
 
