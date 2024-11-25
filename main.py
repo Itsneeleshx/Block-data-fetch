@@ -64,7 +64,7 @@ sheet_name = "91club-api"  # Update with your sheet name
 sheet = client.open(sheet_name).sheet1
 
 # define send data to sheet
-def send_data_to_google_sheets(data):
+def send_data_to_google_sheets(block_height, last_digit):
     """
     Send data to Google Sheets.
 
