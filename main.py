@@ -438,8 +438,7 @@ except Exception as e:
         
 # Entry point
 if __name__ == "__main__":
-    # Load or create the LSTM model
-    load_or_create_model()
+    initialize_model_and_scaler()
 
     # Initialize the scheduler
     scheduler = BackgroundScheduler()
