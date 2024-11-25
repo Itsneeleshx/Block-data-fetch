@@ -318,10 +318,13 @@ def periodic_task():
         time.sleep(8)  # Ensure the block is created and indexed
 
         # Fetch block height for the target timestamp
-        block_height, block_time = get_block_height_by_time(target_timestamp_ms)
-        if block_height and block_time:
-            if block_time.second == 54:
-                logging.info(f"Block Height at {block_time}: {block_height}")
+        block_height, block_time_utc = get_block_height_by_time(target_timestamp_ms)
+        if block_height and block_time_utc:
+            # Convert block time from UTC to IST
+            block_time_ist = block_time_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))
+
+            if block_time_ist.second == 54:  # Ensure it's the 54th second
+                logging.info(f"Block Height at {block_time_ist} (IST): {block_height}")
 
                 # Fetch block hash
                 block_hash = get_block_hash_by_height(block_height)
@@ -333,9 +336,12 @@ def periodic_task():
                     if last_digit:
                         logging.info(f"Last Numerical Digit in Block Hash: {last_digit}")
 
+                        # Prepare data to send to Google Sheets
+                        data_to_send = [str(block_time_ist), block_height, last_digit]
+
                         # Send data to Google Sheets
                         try:
-                            send_data_to_google_sheets(block_height, last_digit)
+                            send_data_to_google_sheets(data_to_send)
                             logging.info("Data sent to Google Sheets successfully.")
                         except Exception as e:
                             logging.error(f"Failed to send data to Google Sheets: {e}")
@@ -352,7 +358,7 @@ def periodic_task():
                 else:
                     logging.error("Failed to fetch block hash.")
             else:
-                logging.error(f"Block timestamp mismatch. Expected: 54s, Found: {block_time.second}s")
+                logging.error(f"Block timestamp mismatch. Expected: 54s, Found: {block_time_ist.second}s")
         else:
             logging.error("Failed to fetch block height.")
     except Exception as e:
