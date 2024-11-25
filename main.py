@@ -169,6 +169,26 @@ def train_lstm_model():
     except Exception as e:
         logging.error(f"Error in train_lstm_model: {str(e)}")
 
+# scaler startup before first prediction 
+def initialize_model_and_scaler():
+    """
+    Initialize the LSTM model and scaler at startup.
+    """
+    global lstm_model
+    
+    # Load or create the LSTM model
+    load_or_create_model()
+
+    # Load the scaler
+    scaler_file = "scaler.pkl"
+    if os.path.exists(scaler_file):
+        with open(scaler_file, 'rb') as f:
+            global scaler
+            scaler = pickle.load(f)
+        logging.info("Scaler loaded successfully.")
+    else:
+        logging.warning("Scaler file not found. Model might need retraining.")
+
 # Function to fetch block data and log to Google Sheets
 def fetch_and_log_block_data():
     try:
