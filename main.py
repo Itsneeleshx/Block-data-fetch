@@ -68,9 +68,13 @@ def send_data_to_google_sheets(block_height, last_digit):
     """
     Send data to Google Sheets.
 
-    :param data: A list of data to append, e.g., [timestamp, block_height, last_digit].
+    :param block_height: The block height to send.
+    :param last_digit: The last numerical digit from the block hash.
     """
     try:
+        # Prepare the data as a list
+        data = [str(datetime.now()), block_height, last_digit]
+        
         # Append the data to the sheet
         sheet.append_row(data)
         logging.info(f"Data sent to Google Sheets: {data}")
