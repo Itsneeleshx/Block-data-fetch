@@ -85,12 +85,6 @@ CHAIN_SHORT_NAME = "TRON"
 # Logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Example: Log Google Sheets data updates
-try:
-    sheet.update_cell(1, 1, "Test Data")  # Example operation
-    logging.info("Successfully updated Google Sheets.")
-except Exception as e:
-    logging.error(f"Error while updating Google Sheets: {e}")
 
 # Flask app setup
 app = Flask(__name__)
