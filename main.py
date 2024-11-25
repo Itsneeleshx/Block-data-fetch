@@ -146,8 +146,12 @@ def train_lstm_model():
         
         # Check if there is enough data to train
         if len(sequences) == 0 or len(labels) == 0:
-            logging.warning("Not enough data to train the model.")
+            logging.warning("Not enough data to train the model. Add more rows to the Google Sheet.")
             return
+
+        if lstm_model is None:
+            lstm_model = create_lstm_model(input_shape=(SEQUENCE_LENGTH, 1))
+            logging.info("Created a new LSTM model for training.")
 
         # Train the model
         logging.info("Training the LSTM model...")
