@@ -63,19 +63,15 @@ except Exception as e:
 sheet_name = "91club-api"  # Update with your sheet name
 sheet = client.open(sheet_name).sheet1
 
-# define send data to sheet
-def send_data_to_google_sheets(block_height, last_digit):
+# Define send data to sheet
+def send_data_to_google_sheets(data):
     """
     Send data to Google Sheets.
 
-    :param block_height: The block height to send.
-    :param last_digit: The last numerical digit from the block hash.
+    :param data: A list containing [timestamp (in IST), block_height, last_digit].
     """
     try:
-        # Prepare the data as a list
-        data = [str(datetime.now()), block_height, last_digit]
-        
-        # Append the data to the sheet
+        # Append the data to the Google Sheet
         sheet.append_row(data)
         logging.info(f"Data sent to Google Sheets: {data}")
     except Exception as e:
