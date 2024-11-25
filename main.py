@@ -385,6 +385,13 @@ try:
         logging.error("Prediction failed: No valid predicted digit or confidence.")
 except Exception as e:
     logging.error(f"Error predicting next digit: {e}")
+    
+                        # Retrain the model periodically
+                        try:
+                            logging.info("Retraining LSTM model with updated data...")
+                            train_lstm_model()
+                        except Exception as e:
+                            logging.error(f"Error retraining LSTM model: {e}")
                     else:
                         logging.error("No numerical digit found in block hash.")
                 else:
