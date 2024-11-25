@@ -102,8 +102,7 @@ def load_or_create_model():
         lstm_model = load_model(MODEL_PATH)
         logging.info("Loaded existing LSTM model.")
     else:
-        lstm_model = create_lstm_model(input_shape=(SEQUENCE_LENGTH, 1))
-        logging.info("Created a new LSTM model.")
+        logging.error("Model file not found. Train the model before making predictions.")
 
 # Function to create a new LSTM model
 def create_lstm_model(input_shape):
