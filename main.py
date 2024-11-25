@@ -432,15 +432,15 @@ def periodic_task():
                             logging.error(f"Failed to send data to Google Sheets: {e}")
 
                         # Predict next digit
-try:
-    logging.info("Predicting next digit...")
-    predicted_digit, confidence = predict_next_digit()
-    if predicted_digit is not None and confidence is not None:
-        logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}")
-    else:
-        logging.error("Prediction failed: No valid predicted digit or confidence.")
-except Exception as e:
-    logging.error(f"Error predicting next digit: {e}")
+                        try:
+                            logging.info("Predicting next digit...")
+                            predicted_digit, confidence = predict_next_digit()
+                        if predicted_digit is not None and confidence is not None:
+                            logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}")
+                        else:
+                           logging.error("Prediction failed: No valid predicted digit or confidence.")
+                    except Exception as e:
+                           logging.error(f"Error predicting next digit: {e}")
     
                         # Retrain the model periodically
                         try:
