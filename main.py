@@ -162,11 +162,6 @@ def fetch_and_log_block_data():
             logging.error("Failed to fetch block hash.")
             return
 
-        # Extract last digit of block hash
-        last_digit = int(block_hash[-1], 16) % 10  # Ensure a single-digit last digit
-        
-        
-
         # Log last digit to Google Sheets
         sheet.append_row([datetime.now().isoformat(), block_height, last_digit])
 
