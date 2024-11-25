@@ -264,6 +264,16 @@ def get_block_hash_by_height(block_height):
             return block_data[0]["hash"]
     return None
 
+# extract last digit 
+def extract_last_numerical_digit(block_hash):
+    """
+    Extract the last numerical digit from the block hash.
+    """
+    for char in reversed(block_hash):
+        if char.isdigit():
+            return int(char)  # Convert to an integer
+    return None
+
 # Flask route: Home
 @app.route('/')
 def home():
