@@ -212,10 +212,27 @@ def predict_next_digit():
 
         # Prepare the last sequence
         last_sequence = data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values
-        normalized_sequence = scaler.transform(last_sequence.reshape(-1, 1)).reshape(1, SEQUENCE_LENGTH, 1)
+        if len(last_sequence) != SEQUENCE_LENGTH:
+            logging.error(f"Expected sequence length: {SEQUENCE_LENGTH}, Got: {len(last_sequence)}")
+            return None, None
+
+        # Normalize the sequence
+        try:
+            normalized_sequence = scaler.transform(last_sequence.reshape(-1, 1)).reshape(1, SEQUENCE_LENGTH, 1)
+        except Exception as e:
+            logging.error(f"Scaler transformation error: {e}")
+            return None, None
 
         # Predict using the LSTM model
+        if lstm_model is None:
+            logging.error("LSTM model is not initialized.")
+            return None, None
+
         probabilities = lstm_model.predict(normalized_sequence, verbose=0)
+        if probabilities is None or len(probabilities) == 0:
+            logging.error("Prediction failed: Empty or None probabilities.")
+            return None, None
+
         predicted_digit = np.argmax(probabilities)
         confidence = probabilities[0][predicted_digit]
 
