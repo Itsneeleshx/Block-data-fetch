@@ -418,7 +418,7 @@ def periodic_task():
 
                     # Extract last numerical digit
                     last_digit = extract_last_numerical_digit(block_hash)
-                    if last_digit:
+                    if last_digit is not None:
                         logging.info(f"Last Numerical Digit in Block Hash: {last_digit}")
 
                         # Prepare data to send to Google Sheets
