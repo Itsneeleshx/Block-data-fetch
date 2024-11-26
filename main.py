@@ -414,7 +414,7 @@ def periodic_task():
                         # Predict next digit
                         try:
                             logging.info("Predicting next digit...")
-                            predicted_digit, confidence = predict_next_digit()
+                            predicted_digit, confidence = predict_next_digit(input_data)
                             if predicted_digit is not None and confidence is not None:
                                 logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}")
                             else:
