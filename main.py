@@ -68,12 +68,23 @@ sheet = client.open(sheet_name).sheet1
 # Define send data to sheet
 def send_data_to_google_sheets(data):
     """
-    Send data to Google Sheets.
+    Send data to Google Sheets if it doesn't already exist.
 
     :param data: A list containing [timestamp (in IST), block_height, last_digit].
     """
     try:
-        # Append the data to the Google Sheet
+        # Fetch all existing data from the Google Sheet
+        existing_data = sheet.get_all_records()
+
+        # Check if the new row already exists
+        for row in existing_data:
+            if (row['Timestamp'] == data[0] and
+                row['Block Height'] == data[1] and
+                row['Last Digit'] == data[2]):
+                logging.info(f"Duplicate entry detected: {data}. Data will not be added.")
+                return  # Exit if duplicate is found
+
+        # Append the new data if no duplicates
         sheet.append_row(data)
         logging.info(f"Data sent to Google Sheets: {data}")
     except Exception as e:
