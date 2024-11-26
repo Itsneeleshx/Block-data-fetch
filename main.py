@@ -222,10 +222,10 @@ def fetch_and_log_block_data():
 
         logging.info(f"Block height: {block_height}, Block hash: {block_hash}, Last digit: {last_digit}")
 
-        # Prepare input data (e.g., the last sequence of digits)
-        input_data = last_sequence  # or any data you need to pass into the function
+        # Prepare the input data (example: last digit sequence from the Google Sheet)
+        input_data = np.array(data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values)
 
-        # Call the function with input_data
+        # Call the function with the required argument
         predicted_digit, confidence = predict_next_digit(input_data)
 
         # Log the prediction
