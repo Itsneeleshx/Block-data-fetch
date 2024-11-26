@@ -120,13 +120,7 @@ def fetch_and_preprocess_data():
     data = pd.DataFrame(sheet.get_all_records())
     if 'Last Digit' not in data.columns:
         raise ValueError("The column 'Last Digit' is missing in the Google Sheet.")
-
-    # Convert 'Last Digit' to integers, handling invalid values
     data['Last Digit'] = pd.to_numeric(data['Last Digit'], errors='coerce').fillna(0).astype(int)
-
-    # Validate the range of 'Last Digit'
-    if data['Last Digit'].min() < 0 or data['Last Digit'].max() > 9:
-        raise ValueError("Invalid label values detected. Labels must be between 0 and 9.")
     
     # Prepare sequences for LSTM
     sequences = []
@@ -138,6 +132,11 @@ def fetch_and_preprocess_data():
     # Normalize sequences
     sequences = scaler.fit_transform(np.array(sequences).reshape(-1, 1)).reshape(-1, SEQUENCE_LENGTH, 1)
     labels = np.array(labels)
+
+    # Validate labels
+    if labels.min() < 0 or labels.max() >= 10:
+        raise ValueError(f"Invalid label range detected. Min: {labels.min()}, Max: {labels.max()}. Expected: [0, 9].")
+
     return sequences, labels
     
 # Train or retrain the LSTM model
