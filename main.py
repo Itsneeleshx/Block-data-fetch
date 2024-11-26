@@ -155,6 +155,10 @@ def train_lstm_model():
             logging.warning("Not enough data to train the model.")
             return
 
+        # Check label range before training
+        if labels.min() < 0 or labels.max() > 9:
+            raise ValueError("Labels are out of range! Must be between 0 and 9.")
+        
         # Reinitialize the optimizer to avoid variable mismatch errors
         lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
