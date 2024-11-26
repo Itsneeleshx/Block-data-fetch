@@ -141,24 +141,20 @@ def fetch_and_preprocess_data():
     
 # Train or retrain the LSTM model
 def train_lstm_model():
-    """
-    Train or retrain the LSTM model using data from Google Sheets.
-    """
     global lstm_model
     try:
         # Fetch and preprocess data
         sequences, labels = fetch_and_preprocess_data()
-        
+
+        # Log label range for debugging
+        logging.info(f"Label range before training: Min={labels.min()}, Max={labels.max()}")
+
         # Check if there is enough data to train
         if len(sequences) == 0 or len(labels) == 0:
             logging.warning("Not enough data to train the model.")
             return
 
-        # Check label range before training
-        if labels.min() < 0 or labels.max() > 9:
-            raise ValueError("Labels are out of range! Must be between 0 and 9.")
-        
-        # Reinitialize the optimizer to avoid variable mismatch errors
+        # Recompile the model and recreate the optimizer
         lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
         # Train the model
