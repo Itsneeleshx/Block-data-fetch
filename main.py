@@ -222,8 +222,11 @@ def fetch_and_log_block_data():
 
         logging.info(f"Block height: {block_height}, Block hash: {block_hash}, Last digit: {last_digit}")
 
-        # Predict the next digit using the LSTM model
-        predicted_digit, confidence = predict_next_digit()
+        # Prepare input data (e.g., the last sequence of digits)
+        input_data = last_sequence  # or any data you need to pass into the function
+
+        # Call the function with input_data
+        predicted_digit, confidence = predict_next_digit(input_data)
 
         # Log the prediction
         logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}")
