@@ -261,6 +261,24 @@ def background_task():
             logging.error(f"Error in background task: {str(e)}")
         time.sleep(10)  # Adjust interval as needed
 
+# Prepare input data 
+def prepare_input_data():
+    # Fetch data from Google Sheets
+    data = pd.DataFrame(sheet.get_all_records())
+
+    # Check for sufficient data
+    if len(data) < SEQUENCE_LENGTH:
+        logging.warning("Not enough data to prepare input sequence.")
+        return None
+
+    # Extract the last sequence
+    last_sequence = data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values
+
+    # Normalize the sequence using the scaler
+    normalized_sequence = scaler.transform(last_sequence.reshape(-1, 1))
+
+    # Reshape for LSTM input
+    return normalized_sequence.reshape(1, SEQUENCE_LENGTH, 1)
 
 # Predict the next digit and log the probability
 def predict_next_digit(input_data):
