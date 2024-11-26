@@ -222,6 +222,14 @@ def fetch_and_log_block_data():
 
         logging.info(f"Block height: {block_height}, Block hash: {block_hash}, Last digit: {last_digit}")
 
+        # Fetch data from Google Sheets
+        data = pd.DataFrame(sheet.get_all_records())
+
+        # Check if there’s enough data for prediction
+        if len(data) < SEQUENCE_LENGTH:
+            logging.warning("Not enough data to make predictions.")
+            return None, None
+
         # Prepare the input data (example: last digit sequence from the Google Sheet)
         input_data = np.array(data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values)
 
