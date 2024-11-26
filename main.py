@@ -130,35 +130,45 @@ def create_lstm_model(input_shape):
 
 # Function to preprocess data from Google Sheets
 def fetch_and_preprocess_data():
-    data = pd.DataFrame(sheet.get_all_records())
-    if 'Last Digit' not in data.columns:
-        raise ValueError("The column 'Last Digit' is missing in the Google Sheet.")
-        
-    # Drop duplicates based on 'Timestamp', 'Block Height', and 'Last Digit'
-    data = data.drop_duplicates(subset=['Timestamp', 'Block Height', 'Last Digit'], keep='first')
-    logging.info(f"Data after removing duplicates: {len(data)} rows")
-        
-    data['Last Digit'] = pd.to_numeric(data['Last Digit'], errors='coerce').fillna(0).astype(int)
-    
-    if len(data) < SEQUENCE_LENGTH:
-        raise ValueError(f"Not enough data to create sequences. Required: {SEQUENCE_LENGTH}, Found: {len(data)}")
-        
-    # Prepare sequences for LSTM
-    sequences = []
-    labels = []
-    for i in range(len(data) - SEQUENCE_LENGTH):
-        sequences.append(data['Last Digit'].iloc[i:i + SEQUENCE_LENGTH].values)
-        labels.append(data['Last Digit'].iloc[i + SEQUENCE_LENGTH])
-    
-    # Normalize sequences
-    sequences = scaler.fit_transform(np.array(sequences).reshape(-1, 1)).reshape(-1, SEQUENCE_LENGTH, 1)
-    labels = np.array(labels)
+    try:
+        # Load data into a DataFrame
+        data = pd.DataFrame(sheet.get_all_records())
 
-    # Validate labels
-    if labels.min() < 0 or labels.max() >= 10:
-        raise ValueError(f"Invalid label range detected. Min: {labels.min()}, Max: {labels.max()}. Expected: [0, 9].")
+        # Validate columns
+        if 'Timestamp' not in data.columns or 'Block Height' not in data.columns or 'Last Digit' not in data.columns:
+            raise ValueError("The required columns ['Timestamp', 'Block Height', 'Last Digit'] are missing in the Google Sheet.")
 
-    return sequences, labels
+        # Drop duplicates based on 'Timestamp' and 'Block Height'
+        data = data.drop_duplicates(subset=['Timestamp', 'Block Height'], keep='first')
+        logging.info(f"Data after removing duplicates: {len(data)} rows")
+
+        # Ensure 'Last Digit' is numeric
+        data['Last Digit'] = pd.to_numeric(data['Last Digit'], errors='coerce').fillna(0).astype(int)
+
+        # Check if there is enough data
+        if len(data) < SEQUENCE_LENGTH:
+            raise ValueError(f"Not enough data to create sequences. Required: {SEQUENCE_LENGTH}, Found: {len(data)}")
+
+        # Prepare sequences and labels for LSTM
+        sequences = []
+        labels = []
+        for i in range(len(data) - SEQUENCE_LENGTH):
+            sequences.append(data['Last Digit'].iloc[i:i + SEQUENCE_LENGTH].values)
+            labels.append(data['Last Digit'].iloc[i + SEQUENCE_LENGTH])
+
+        # Normalize sequences
+        sequences = scaler.fit_transform(np.array(sequences).reshape(-1, 1)).reshape(-1, SEQUENCE_LENGTH, 1)
+        labels = np.array(labels)
+
+        # Validate label range
+        if labels.max() >= 10:
+            raise ValueError(f"Invalid label range detected. Max: {labels.max()}. Expected: [0, 9].")
+
+        return sequences, labels
+
+    except Exception as e:
+        logging.error(f"Error in data preprocessing: {e}")
+        raise
     
 # Train or retrain the LSTM model
 def train_lstm_model():
