@@ -124,6 +124,9 @@ def fetch_and_preprocess_data():
         raise ValueError("The column 'Last Digit' is missing in the Google Sheet.")
     data['Last Digit'] = pd.to_numeric(data['Last Digit'], errors='coerce').fillna(0).astype(int)
     
+    if len(data) < SEQUENCE_LENGTH:
+        raise ValueError(f"Not enough data to create sequences. Required: {SEQUENCE_LENGTH}, Found: {len(data)}")
+        
     # Prepare sequences for LSTM
     sequences = []
     labels = []
