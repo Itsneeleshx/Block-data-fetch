@@ -412,7 +412,7 @@ def periodic_task():
         block_height, block_time_utc = get_block_height_by_time(target_timestamp_ms)
         if block_height and block_time_utc:
             # Convert block time from UTC to IST
-            block_time_ist = block_time_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))
+            block_time_ist = block_time_utc.astimezone(timezone(timedelta(hours=5, 30)))
 
             if block_time_ist.second == 54:  # Ensure it's the 54th second
                 logging.info(f"Block Height at {block_time_ist} (IST): {block_height}")
@@ -437,17 +437,22 @@ def periodic_task():
                         except Exception as e:
                             logging.error(f"Failed to send data to Google Sheets: {e}")
 
-                        # Predict next digit
-                        try:
-                            logging.info("Predicting next digit...")
-                            predicted_digit, confidence = predict_next_digit(input_data)
-                            if predicted_digit is not None and confidence is not None:
-                                logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}")
-                            else:
-                                logging.error("Prediction failed: No valid predicted digit or confidence.")
-                        except Exception as e:
-                            logging.error(f"Error predicting next digit: {e}")
-    
+                        # Prepare input data for prediction
+                        input_data = prepare_input_data()
+                        if input_data is not None:
+                            # Predict next digit
+                            try:
+                                logging.info("Predicting next digit...")
+                                predicted_digit, confidence = predict_next_digit(input_data)
+                                if predicted_digit is not None and confidence is not None:
+                                    logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}")
+                                else:
+                                    logging.error("Prediction failed: No valid predicted digit or confidence.")
+                            except Exception as e:
+                                logging.error(f"Error predicting next digit: {e}")
+                        else:
+                            logging.warning("Insufficient data to prepare input for prediction.")
+
                         # Retrain the model periodically
                         try:
                             logging.info("Retraining LSTM model with updated data...")
