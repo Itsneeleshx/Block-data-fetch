@@ -251,56 +251,27 @@ def background_task():
 
 
 # Predict the next digit and log the probability
-def predict_next_digit():
+def predict_next_digit(input_data):
     """
-    Predict the next digit using the LSTM model and log the probability.
+    Make predictions using the trained LSTM model.
     """
     try:
-        # Fetch data from Google Sheets
-        data = pd.DataFrame(sheet.get_all_records())
+        # Check if the scaler is loaded
+        if not scaler:
+            raise ValueError("Scaler is not initialized. Make sure to initialize_model_and_scaler first.")
 
-        # Check for sufficient data
-        if len(data) < SEQUENCE_LENGTH:
-            logging.warning(f"Not enough data to make predictions. Require {SEQUENCE_LENGTH}, but found {len(data)}.")
-            return None, None
+        # Transform input data using the loaded scaler
+        input_data_scaled = scaler.transform(input_data)
 
-        # Prepare the last sequence
-        last_sequence = data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values
-        if len(last_sequence) != SEQUENCE_LENGTH:
-            logging.error(f"Expected sequence length: {SEQUENCE_LENGTH}, Got: {len(last_sequence)}")
-            return None, None
-
-        # Ensure scaler is properly initialized
-        if scaler is None or not hasattr(scaler, 'min_'):
-            logging.error("Scaler is not properly initialized or fitted. Retrain the model first.")
-            return None, None
-
-        # Normalize the sequence
-        try:
-            normalized_sequence = scaler.transform(last_sequence.reshape(-1, 1)).reshape(1, SEQUENCE_LENGTH, 1)
-        except Exception as e:
-            logging.error(f"Scaler transformation error: {e}")
-            return None, None
-
-        # Ensure the LSTM model is loaded
-        if lstm_model is None:
-            logging.error("LSTM model is not initialized. Load or train the model before prediction.")
-            return None, None
-
-        # Predict using the LSTM model
-        probabilities = lstm_model.predict(normalized_sequence, verbose=0)
-        if probabilities is None or len(probabilities) == 0:
-            logging.error("Prediction failed: Empty or None probabilities.")
-            return None, None
-
-        # Extract the predicted digit and confidence
-        predicted_digit = np.argmax(probabilities)
-        confidence = probabilities[0][predicted_digit]
+        # Use the trained model to predict
+        prediction = lstm_model.predict(input_data_scaled)
+        predicted_digit = np.argmax(prediction)
+        confidence = max(prediction[0]) * 100  # Assuming softmax output
 
         return predicted_digit, confidence
     except Exception as e:
-        logging.error(f"Error in predict_next_digit: {str(e)}")
-        return None, None
+        logging.error(f"Error during prediction: {str(e)}")
+        return None, 0
         
 # Function to calculate the target timestamp
 def calculate_target_timestamp():
