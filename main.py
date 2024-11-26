@@ -142,7 +142,7 @@ def fetch_and_preprocess_data():
     
 # Train or retrain the LSTM model
 def train_lstm_model():
-    global lstm_model
+    global lstm_model, scaler
     try:
         # Fetch and preprocess data
         sequences, labels = fetch_and_preprocess_data()
@@ -155,22 +155,26 @@ def train_lstm_model():
             logging.warning("Not enough data to train the model.")
             return
 
-        # Recompile the model and recreate the optimizer
-        lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
-
-        # Train the model
-        logging.info("Training the LSTM model...")
-        lstm_model.fit(sequences, labels, epochs=5, batch_size=32, verbose=2)
-
-        # Save the updated model
-        lstm_model.save(MODEL_PATH)
-        logging.info("LSTM model retrained and saved.")
+        # Initialize and fit the scaler
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        sequences_scaled = scaler.fit_transform(sequences)
 
         # Save the scaler for consistency
         scaler_file = "scaler.pkl"
         with open(scaler_file, 'wb') as f:
             pickle.dump(scaler, f)
-        logging.info("Scaler saved for consistency.")
+        logging.info("Scaler initialized, fitted, and saved.")
+
+        # Recompile the model and recreate the optimizer
+        lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+
+        # Train the model
+        logging.info("Training the LSTM model...")
+        lstm_model.fit(sequences_scaled, labels, epochs=5, batch_size=32, verbose=2)
+
+        # Save the updated model
+        lstm_model.save(MODEL_PATH)
+        logging.info("LSTM model retrained and saved.")
     except Exception as e:
         logging.error(f"Error in train_lstm_model: {str(e)}")
 
@@ -192,6 +196,7 @@ def initialize_model_and_scaler():
         logging.info("Scaler loaded successfully.")
     else:
         logging.warning("Scaler file not found. Model might need retraining.")
+        scaler = MinMaxScaler(feature_range=(0, 1))  # Initialize a default scaler
 
 # Function to fetch block data and log to Google Sheets
 def fetch_and_log_block_data():
