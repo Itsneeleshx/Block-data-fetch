@@ -239,38 +239,6 @@ def background_task():
             logging.error(f"Error in background task: {str(e)}")
         time.sleep(10)  # Adjust interval as needed
 
-# predict next digit scaler update 
-def predict_next_digit():
-    try:
-        # Load the scaler
-        scaler_file = "scaler.pkl"
-        if os.path.exists(scaler_file):
-            with open(scaler_file, 'rb') as f:
-                scaler = pickle.load(f)
-            logging.info("Scaler loaded successfully.")
-        else:
-            logging.error("Scaler file not found. Ensure the model has been trained.")
-            return None, None
-
-        # Fetch data from Google Sheets
-        data = pd.DataFrame(sheet.get_all_records())
-        if len(data) < SEQUENCE_LENGTH:
-            logging.warning("Not enough data to make predictions.")
-            return None, None
-
-        # Prepare the last sequence
-        last_sequence = data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values
-        normalized_sequence = scaler.transform(last_sequence.reshape(-1, 1)).reshape(1, SEQUENCE_LENGTH, 1)
-
-        # Predict using the LSTM model
-        probabilities = lstm_model.predict(normalized_sequence, verbose=0)
-        predicted_digit = np.argmax(probabilities)
-        confidence = probabilities[0][predicted_digit]
-
-        return predicted_digit, confidence
-    except Exception as e:
-        logging.error(f"Error in predict_next_digit: {str(e)}")
-        return None, None
 
 # Predict the next digit and log the probability
 def predict_next_digit():
