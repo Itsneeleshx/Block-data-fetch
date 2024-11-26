@@ -146,21 +146,20 @@ def train_lstm_model():
         
         # Check if there is enough data to train
         if len(sequences) == 0 or len(labels) == 0:
-            logging.warning("Not enough data to train the model. Add more rows to the Google Sheet.")
+            logging.warning("Not enough data to train the model.")
             return
 
-        if lstm_model is None:
-            lstm_model = create_lstm_model(input_shape=(SEQUENCE_LENGTH, 1))
-            logging.info("Created a new LSTM model for training.")
+        # Recompile the model and recreate the optimizer
+        lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
         # Train the model
         logging.info("Training the LSTM model...")
         lstm_model.fit(sequences, labels, epochs=5, batch_size=32, verbose=2)
-        
+
         # Save the updated model
         lstm_model.save(MODEL_PATH)
         logging.info("LSTM model retrained and saved.")
-        
+
         # Save the scaler for consistency
         scaler_file = "scaler.pkl"
         with open(scaler_file, 'wb') as f:
