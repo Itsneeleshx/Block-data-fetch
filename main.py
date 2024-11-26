@@ -122,6 +122,11 @@ def fetch_and_preprocess_data():
     data = pd.DataFrame(sheet.get_all_records())
     if 'Last Digit' not in data.columns:
         raise ValueError("The column 'Last Digit' is missing in the Google Sheet.")
+        
+    # Drop duplicates based on 'Timestamp', 'Block Height', and 'Last Digit'
+    data = data.drop_duplicates(subset=['Timestamp', 'Block Height', 'Last Digit'], keep='first')
+    logging.info(f"Data after removing duplicates: {len(data)} rows")
+        
     data['Last Digit'] = pd.to_numeric(data['Last Digit'], errors='coerce').fillna(0).astype(int)
     
     if len(data) < SEQUENCE_LENGTH:
