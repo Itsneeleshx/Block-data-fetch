@@ -143,10 +143,14 @@ def fetch_and_preprocess_data():
     
 # Train or retrain the LSTM model
 def train_lstm_model():
-    global lstm_model, scaler
+    global lstm_model
     try:
         # Fetch and preprocess data
         sequences, labels = fetch_and_preprocess_data()
+
+        # Reshape sequences for LSTM
+        sequences = np.array(sequences).reshape(-1, SEQUENCE_LENGTH, 1)
+        labels = np.array(labels)
 
         # Log label range for debugging
         logging.info(f"Label range before training: Min={labels.min()}, Max={labels.max()}")
@@ -156,26 +160,22 @@ def train_lstm_model():
             logging.warning("Not enough data to train the model.")
             return
 
-        # Initialize and fit the scaler
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        sequences_scaled = scaler.fit_transform(sequences)
-
-        # Save the scaler for consistency
-        scaler_file = "scaler.pkl"
-        with open(scaler_file, 'wb') as f:
-            pickle.dump(scaler, f)
-        logging.info("Scaler initialized, fitted, and saved.")
-
         # Recompile the model and recreate the optimizer
         lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
         # Train the model
         logging.info("Training the LSTM model...")
-        lstm_model.fit(sequences_scaled, labels, epochs=5, batch_size=32, verbose=2)
+        lstm_model.fit(sequences, labels, epochs=5, batch_size=32, verbose=2)
 
         # Save the updated model
         lstm_model.save(MODEL_PATH)
         logging.info("LSTM model retrained and saved.")
+
+        # Save the scaler for consistency
+        scaler_file = "scaler.pkl"
+        with open(scaler_file, 'wb') as f:
+            pickle.dump(scaler, f)
+        logging.info("Scaler saved for consistency.")
     except Exception as e:
         logging.error(f"Error in train_lstm_model: {str(e)}")
 
