@@ -173,8 +173,8 @@ def initialize_model_and_scaler():
     """
     Initialize the LSTM model and scaler at startup.
     """
-    global lstm_model
-    
+    global lstm_model, scaler
+
     # Load or create the LSTM model
     load_or_create_model()
 
@@ -182,7 +182,6 @@ def initialize_model_and_scaler():
     scaler_file = "scaler.pkl"
     if os.path.exists(scaler_file):
         with open(scaler_file, 'rb') as f:
-            global scaler
             scaler = pickle.load(f)
         logging.info("Scaler loaded successfully.")
     else:
