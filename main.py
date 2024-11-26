@@ -427,7 +427,7 @@ if __name__ == "__main__":
     scheduler = BackgroundScheduler()
 
     # Schedule the periodic task
-    scheduler.add_job(periodic_task, 'cron', second=54)  # Run every 54th second
+    scheduler.add_job(periodic_task, 'interval', seconds=30, max_instances=2)
     scheduler.add_job(train_lstm_model, 'interval', minutes=10)  # Train model every 10 minutes
 
     # Import event listener from apscheduler
