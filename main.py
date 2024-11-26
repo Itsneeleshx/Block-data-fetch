@@ -412,7 +412,7 @@ def periodic_task():
         block_height, block_time_utc = get_block_height_by_time(target_timestamp_ms)
         if block_height and block_time_utc:
             # Convert block time from UTC to IST
-            block_time_ist = block_time_utc.astimezone(timezone(timedelta(hours=5, 30)))
+            block_time_ist = block_time_utc.astimezone(timezone(timedelta(hours=5, minutes=30)))
 
             if block_time_ist.second == 54:  # Ensure it's the 54th second
                 logging.info(f"Block Height at {block_time_ist} (IST): {block_height}")
