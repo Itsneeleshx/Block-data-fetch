@@ -153,7 +153,7 @@ def train_lstm_model():
             logging.warning("Not enough data to train the model.")
             return
 
-        # Recompile the model and recreate the optimizer
+        # Reinitialize the optimizer to avoid variable mismatch errors
         lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
         # Train the model
