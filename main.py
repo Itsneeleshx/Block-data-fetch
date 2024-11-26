@@ -274,17 +274,27 @@ def predict_next_digit():
 
 # Predict the next digit and log the probability
 def predict_next_digit():
+    """
+    Predict the next digit using the LSTM model and log the probability.
+    """
     try:
         # Fetch data from Google Sheets
         data = pd.DataFrame(sheet.get_all_records())
+
+        # Check for sufficient data
         if len(data) < SEQUENCE_LENGTH:
-            logging.warning("Not enough data to make predictions.")
+            logging.warning(f"Not enough data to make predictions. Require {SEQUENCE_LENGTH}, but found {len(data)}.")
             return None, None
 
         # Prepare the last sequence
         last_sequence = data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values
         if len(last_sequence) != SEQUENCE_LENGTH:
             logging.error(f"Expected sequence length: {SEQUENCE_LENGTH}, Got: {len(last_sequence)}")
+            return None, None
+
+        # Ensure scaler is properly initialized
+        if scaler is None or not hasattr(scaler, 'min_'):
+            logging.error("Scaler is not properly initialized or fitted. Retrain the model first.")
             return None, None
 
         # Normalize the sequence
@@ -294,16 +304,18 @@ def predict_next_digit():
             logging.error(f"Scaler transformation error: {e}")
             return None, None
 
-        # Predict using the LSTM model
+        # Ensure the LSTM model is loaded
         if lstm_model is None:
-            logging.error("LSTM model is not initialized.")
+            logging.error("LSTM model is not initialized. Load or train the model before prediction.")
             return None, None
 
+        # Predict using the LSTM model
         probabilities = lstm_model.predict(normalized_sequence, verbose=0)
         if probabilities is None or len(probabilities) == 0:
             logging.error("Prediction failed: Empty or None probabilities.")
             return None, None
 
+        # Extract the predicted digit and confidence
         predicted_digit = np.argmax(probabilities)
         confidence = probabilities[0][predicted_digit]
 
