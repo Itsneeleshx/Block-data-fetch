@@ -76,15 +76,19 @@ def send_data_to_google_sheets(data):
         # Fetch all existing data from the Google Sheet
         existing_data = sheet.get_all_records()
 
-        # Check if the new row already exists
+        # Validate columns (ensure Block Height and Last Digit exist)
+        required_columns = ['Block Height', 'Last Digit']
+        for col in required_columns:
+            if col not in existing_data[0]:
+                raise ValueError(f"Required column '{col}' is missing in the Google Sheet.")
+
+        # Check if the new row already exists (ignore Timestamp for now)
         for row in existing_data:
-            if (row['Timestamp'] == data[0] and
-                row['Block Height'] == data[1] and
-                row['Last Digit'] == data[2]):
+            if row['Block Height'] == data[1]:
                 logging.info(f"Duplicate entry detected: {data}. Data will not be added.")
                 return  # Exit if duplicate is found
 
-        # Append the new data if no duplicates
+        # Append the new data (including Timestamp, even if it's empty)
         sheet.append_row(data)
         logging.info(f"Data sent to Google Sheets: {data}")
     except Exception as e:
