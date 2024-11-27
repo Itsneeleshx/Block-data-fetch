@@ -15,3 +15,4 @@ apscheduler
 python-dotenv
 pickle
 joblib
+logging
