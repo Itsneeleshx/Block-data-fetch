@@ -135,8 +135,8 @@ def fetch_and_preprocess_data():
         data = pd.DataFrame(sheet.get_all_records())
 
         # Validate columns
-        if 'Timestamp' not in data.columns or 'Block Height' not in data.columns or 'Last Digit' not in data.columns:
-            raise ValueError("The required columns ['Timestamp', 'Block Height', 'Last Digit'] are missing in the Google Sheet.")
+        if 'Block Height' not in data.columns or 'Last Digit' not in data.columns:
+            raise ValueError("The required columns ['Block Height', 'Last Digit'] are missing in the Google Sheet.")
 
         # Drop duplicates based on 'Timestamp' and 'Block Height'
         data = data.drop_duplicates(subset=['Timestamp', 'Block Height'], keep='first')
