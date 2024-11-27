@@ -15,8 +15,6 @@ from apscheduler.triggers.cron import CronTrigger
 import logging
 import joblib  # For saving and loading the scaler
 
-logging.getLogger('googleapiclient').setLevel(logging.DEBUG)
-
 # Imports for handling data processing
 import numpy as np
 import pandas as pd
