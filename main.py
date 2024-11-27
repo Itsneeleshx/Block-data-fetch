@@ -12,7 +12,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
-import googleapiclient.discovery
 import logging
 import joblib  # For saving and loading the scaler
 
@@ -31,7 +30,6 @@ from sklearn.preprocessing import MinMaxScaler
 # Imports for Google Sheets
 import gspread
 from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
 
 # Flask imports for creating the API
 from flask import Flask, jsonify
