@@ -10,7 +10,7 @@ requests
 gunicorn
 scikit-learn
 python-dotenv
-apscheduler
+apscheduler=3.11.0
 python-dotenv
 joblib
 
