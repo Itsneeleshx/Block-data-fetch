@@ -12,5 +12,5 @@ scikit-learn
 python-dotenv
 apscheduler=3.11.0
 python-dotenv
-joblib
+joblib=1.4.2
 
