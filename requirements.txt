@@ -1,7 +1,7 @@
 Flask
 numpy
 pandas
-tensorflow>=2.12
+tensorflow=2.18.0
 gspread
 google-auth
 google-auth-oauthlib
