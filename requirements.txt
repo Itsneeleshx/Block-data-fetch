@@ -1,16 +1,16 @@
-Flask=3.1.0
+Flask
 numpy
-pandas=2.2.3
-tensorflow=2.18.0
+pandas
+tensorflow>=2.12
 gspread
-google-auth=2.36.0
-google-auth-oauthlib=1.2.1
-google-auth-httplib2=0.2.0
-requests=2.32.3
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+requests
 gunicorn
-scikit-learn=1.5.2
-python-dotenv=1.0.1
-apscheduler=3.11.0
+scikit-learn
 python-dotenv
-joblib=1.4.2
+apscheduler
+python-dotenv
+joblib
 
