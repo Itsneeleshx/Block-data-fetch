@@ -64,29 +64,29 @@ sheet = client.open(sheet_name).sheet1
 # Define send data to sheet
 def send_data_to_google_sheets(data):
     """
-    Send data to Google Sheets if it doesn't already exist.
-
+    Send data to Google Sheets if it doesn't already exist (based on Timestamp and Block Height).
     :param data: A list containing [timestamp (in IST), block_height, last_digit].
     """
     try:
         # Fetch all existing data from the Google Sheet
         existing_data = sheet.get_all_records()
 
-        # Validate columns (ensure Block Height and Last Digit exist)
-        required_columns = ['Block Height', 'Last Digit']
+        # Validate columns (ensure Timestamp and Block Height exist)
+        required_columns = ['Timestamp', 'Block Height']
         for col in required_columns:
             if col not in existing_data[0]:
                 raise ValueError(f"Required column '{col}' is missing in the Google Sheet.")
 
-        # Check if the new row already exists (ignore Timestamp for now)
+        # Check if the combination of Timestamp and Block Height already exists
         for row in existing_data:
-            if row['Block Height'] == data[1]:
+            if row['Timestamp'] == data[0] and row['Block Height'] == data[1]:
                 logging.info(f"Duplicate entry detected: {data}. Data will not be added.")
-                return  # Exit if duplicate is found
+                return  # Exit if duplicate Timestamp and Block Height combination is found
 
-        # Append the new data (including Timestamp, even if it's empty)
+        # Append the new data (Timestamp, Block Height, and Last Digit)
         sheet.append_row(data)
         logging.info(f"Data sent to Google Sheets: {data}")
+        
     except Exception as e:
         logging.error(f"Failed to send data to Google Sheets: {e}")
 
