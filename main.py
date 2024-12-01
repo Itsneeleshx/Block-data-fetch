@@ -72,7 +72,7 @@ def send_data_to_google_sheets(data):
         existing_data = sheet.get_all_records()
 
         # Validate columns (ensure Timestamp and Block Height exist)
-        required_columns = ['Timestamp', 'Block Height']
+        required_columns = ['Block Height']
         for col in required_columns:
             if col not in existing_data[0]:
                 raise ValueError(f"Required column '{col}' is missing in the Google Sheet.")
