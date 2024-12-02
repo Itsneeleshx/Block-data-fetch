@@ -514,14 +514,23 @@ def periodic_task():
                         # Prepare input data for prediction
                         input_data = prepare_input_data()
                         if input_data is not None:
-                            # Predict next digit
                             try:
                                 logging.info("Predicting next digit...")
-                                predicted_digit, confidence = predict_next_digit(input_data)
-                                if predicted_digit is not None and confidence is not None:
-                                    logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}")
+                                predicted_digit, confidence, predicted_pattern = predict_next_digit(input_data)
+                                if predicted_digit is not None and confidence is not None and predicted_pattern is not None:
+                                    logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2%}, Predicted Pattern: {predicted_pattern}")
+
+                                    # Add predictions to data_to_send
+                                    data_to_send.extend([predicted_digit, f"{confidence:.2%}", predicted_pattern])
+
+                                    # Send data to Google Sheets
+                                    try:
+                                        send_data_to_google_sheets(data_to_send)
+                                        logging.info("Data sent to Google Sheets successfully, including predictions.")
+                                    except Exception as e:
+                                        logging.error(f"Failed to send data to Google Sheets: {e}")
                                 else:
-                                    logging.error("Prediction failed: No valid predicted digit or confidence.")
+                                    logging.error("Prediction failed: Missing one or more prediction values.")
                             except Exception as e:
                                 logging.error(f"Error predicting next digit: {e}")
                         else:
