@@ -260,6 +260,7 @@ def initialize_model_and_scaler():
         scaler = MinMaxScaler(feature_range=(0, 1))  # Initialize a default scaler
 
 # Function to fetch block data and log to Google Sheets
+# Function to fetch block data, make predictions, and log to Google Sheets
 def fetch_and_log_block_data():
     try:
         # Calculate target timestamp
@@ -271,40 +272,33 @@ def fetch_and_log_block_data():
             logging.error("Failed to fetch block data.")
             return
 
-        # Fetch block hash
+        # Fetch block hash and extract the last digit
         block_hash = get_block_hash_by_height(block_height)
-        if block_hash is None:
-            logging.error("Failed to fetch block hash.")
-            return
-
-        # Extract the last digit
         last_digit = extract_last_numerical_digit(block_hash)
         if last_digit is None:
-            logging.error("Failed to extract last numerical digit.")
+            logging.error("Failed to extract last digit from block hash.")
             return
 
-        # Log to Google Sheets
+        # Log block data (without block hash) to Google Sheets
         timestamp = datetime.now().isoformat()
         sheet.append_row([timestamp, block_height, last_digit])
+        logging.info(f"Logged block data: {timestamp}, {block_height}, {last_digit}")
 
-        logging.info(f"Block height: {block_height}, Block hash: {block_hash}, Last digit: {last_digit}")
-
-        # Fetch data from Google Sheets
+        # Fetch data from Google Sheets for prediction
         data = pd.DataFrame(sheet.get_all_records())
 
         # Check if there’s enough data for prediction
         if len(data) < SEQUENCE_LENGTH:
             logging.warning("Not enough data to make predictions.")
-            return None, None
+            return
 
-        # Prepare the input data
+        # Prepare input data for prediction
         input_data = np.array(data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values)
+        predicted_digit, confidence = predict_next_digit(input_data)
 
-        # Call the function to predict the next digit
-        predicted_digit, confidence, predicted_pattern = predict_next_digit_with_pattern(input_data)
-
-        # Log the prediction
-        logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}, Pattern: {predicted_pattern}")
+        # Append prediction and confidence to Google Sheets
+        sheet.append_row([timestamp, block_height, last_digit, predicted_digit, f"{confidence:.2%}"])
+        logging.info("Appended prediction data to Google Sheets.")
 
         # Update shared state (thread-safe)
         with state_lock:
@@ -313,7 +307,6 @@ def fetch_and_log_block_data():
             shared_state["latest_prediction"] = {
                 "digit": predicted_digit,
                 "confidence": f"{confidence * 100:.2f}%",
-                "pattern": predicted_pattern,
             }
 
     except Exception as e:
