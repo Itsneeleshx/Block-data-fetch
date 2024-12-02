@@ -323,44 +323,46 @@ def prepare_input_data():
     # Reshape for LSTM input
     return normalized_sequence.reshape(1, SEQUENCE_LENGTH, 1)
 
-# Predict the next digit and log the probability
-def predict_next_digit(input_data):
+# Predict the next digit and Big/Small pattern
+def predict_next_digit_with_pattern(input_data):
     """
-    Predict the next digit using the LSTM model and log the probability.
+    Predict the next digit using the LSTM model and analyze patterns (Big/Small).
+
+    :param input_data: A NumPy array of shape (SEQUENCE_LENGTH,) containing the last sequence of digits.
+    :return: The predicted digit, confidence level, and Big/Small pattern.
     """
     try:
         # Ensure scaler is properly initialized
         if scaler is None or not hasattr(scaler, 'min_'):
             logging.error("Scaler is not properly initialized or fitted. Retrain the model first.")
-            return None, None
+            return None, None, None
 
         # Normalize the input sequence
-        try:
-            normalized_sequence = scaler.transform(input_data.reshape(-1, 1))
-            normalized_sequence = normalized_sequence.reshape(1, SEQUENCE_LENGTH, 1)  # Reshape after scaling
-        except Exception as e:
-            logging.error(f"Scaler transformation error: {e}")
-            return None, None
+        normalized_sequence = scaler.transform(input_data.reshape(-1, 1))
+        normalized_sequence = normalized_sequence.reshape(1, SEQUENCE_LENGTH, 1)
 
         # Ensure the LSTM model is loaded
         if lstm_model is None:
             logging.error("LSTM model is not initialized. Load or train the model before prediction.")
-            return None, None
+            return None, None, None
 
         # Predict using the LSTM model
         probabilities = lstm_model.predict(normalized_sequence, verbose=0)
-        if probabilities is None or len(probabilities) == 0:
-            logging.error("Prediction failed: Empty or None probabilities.")
-            return None, None
-
-        # Extract the predicted digit and confidence
         predicted_digit = np.argmax(probabilities)
         confidence = probabilities[0][predicted_digit]
 
-        return predicted_digit, confidence
+        # Analyze the Big/Small pattern for the input sequence
+        big_small_pattern = ["Big" if digit >= 5 else "Small" for digit in input_data]
+        predicted_pattern = "Big" if predicted_digit >= 5 else "Small"
+
+        logging.info(f"Input Sequence Big/Small Pattern: {big_small_pattern}")
+        logging.info(f"Predicted Digit: {predicted_digit}, Confidence: {confidence:.2f}, Predicted Pattern: {predicted_pattern}")
+        
+        return predicted_digit, confidence, predicted_pattern
+
     except Exception as e:
-        logging.error(f"Error in predict_next_digit: {str(e)}")
-        return None, None
+        logging.error(f"Error in predict_next_digit_with_pattern: {str(e)}")
+        return None, None, None
         
 # Function to calculate the target timestamp
 def calculate_target_timestamp():
