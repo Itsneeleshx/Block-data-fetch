@@ -188,7 +188,7 @@ def train_lstm_model():
     global lstm_model, scaler
     try:
         # Fetch and preprocess data
-        data = fetch_data()  # Assuming this fetches the required data
+        sequences, labels = fetch_and_preprocess_data()
         
         sequences = []
         digit_labels = []
