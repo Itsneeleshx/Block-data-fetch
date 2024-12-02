@@ -64,31 +64,20 @@ sheet = client.open(sheet_name).sheet1
 # Define send data to sheet
 def send_data_to_google_sheets(data):
     """
-    Send data to Google Sheets if the Block Height doesn't already exist.
-    :param data: A list containing [timestamp (in IST), block_height, last_digit].
+    Send data to Google Sheets without checking for duplicates.
+
+    :param data: A list containing [timestamp (in IST), block_height, last_digit, predicted_digit, confidence, predicted_pattern].
     """
     try:
-        # Fetch all existing data from the Google Sheet
-        existing_data = sheet.get_all_records()
+        # Send the data (including Timestamp and Last Digit)
+        response = sheet.append_row(data)
+        if response.status_code == 200:
+            logging.info(f"Data sent to Google Sheets successfully: {data}")
+        else:
+            logging.error(f"Failed to send data to Google Sheets with status code: {response.status_code}")
 
-        # Validate columns (ensure Block Height exists)
-        required_columns = ['Block Height']
-        for col in required_columns:
-            if col not in existing_data[0]:
-                raise ValueError(f"Required column '{col}' is missing in the Google Sheet.")
-
-        # Check if the block height already exists
-        for row in existing_data:
-            if row['Block Height'] == data[1]:
-                logging.info(f"Duplicate Block Height detected: {data}. Data will not be added.")
-                return  # Exit if duplicate block height is found
-
-        # Append the new data (including Timestamp and Last Digit)
-        sheet.append_row(data)
-        logging.info(f"Data sent to Google Sheets: {data}")
-        
     except Exception as e:
-        logging.error(f"Failed to send data to Google Sheets: {e}")
+        logging.error(f"Failed to send data to Google Sheets: {str(e)}")
 
 # OKLink API setup
 API_BASE_URL = "https://www.oklink.com/api/v5/explorer"
