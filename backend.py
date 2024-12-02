@@ -185,33 +185,51 @@ def fetch_and_preprocess_data():
     
 # Train or retrain the LSTM model
 def train_lstm_model():
-    global lstm_model
+    global lstm_model, scaler
     try:
         # Fetch and preprocess data
-        sequences, labels = fetch_and_preprocess_data()
+        data = fetch_data()  # Assuming this fetches the required data
+        
+        sequences = []
+        digit_labels = []
+        big_small_labels = []
+        
+        # Generate sequences and labels for multitask learning
+        for i in range(len(data) - SEQUENCE_LENGTH):
+            sequences.append(data['Last Digit'].iloc[i:i + SEQUENCE_LENGTH].values)
+            digit_labels.append(data['Last Digit'].iloc[i + SEQUENCE_LENGTH])
+            big_small_labels.append(data['Big/Small'].iloc[i + SEQUENCE_LENGTH])
 
-        # Reshape sequences for LSTM
-        sequences = np.array(sequences).reshape(-1, SEQUENCE_LENGTH, 1)
-        labels = np.array(labels)
+        # Normalize the sequences
+        sequences = scaler.fit_transform(np.array(sequences).reshape(-1, 1)).reshape(-1, SEQUENCE_LENGTH, 1)
+        digit_labels = np.array(digit_labels)
+        big_small_labels = np.array(big_small_labels)
 
         # Log label range for debugging
-        logging.info(f"Label range before training: Min={labels.min()}, Max={labels.max()}")
+        logging.info(f"Label ranges: Digit Labels Min={digit_labels.min()}, Max={digit_labels.max()}")
 
         # Check if there is enough data to train
-        if len(sequences) == 0 or len(labels) == 0:
+        if len(sequences) == 0 or len(digit_labels) == 0 or len(big_small_labels) == 0:
             logging.warning("Not enough data to train the model.")
             return
 
-        # Recompile the model and recreate the optimizer
-        lstm_model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
+        # Create or load the multitask model
+        if lstm_model is None:
+            lstm_model = create_multitask_lstm_model((SEQUENCE_LENGTH, 1))
 
-        # Train the model
-        logging.info("Training the LSTM model...")
-        lstm_model.fit(sequences, labels, epochs=5, batch_size=32, verbose=2)
+        # Train the multitask model
+        logging.info("Training the multitask LSTM model...")
+        lstm_model.fit(
+            sequences,
+            {'digit_output': digit_labels, 'big_small_output': big_small_labels},
+            epochs=5,
+            batch_size=32,
+            verbose=2
+        )
 
         # Save the updated model
         lstm_model.save(MODEL_PATH)
-        logging.info("LSTM model retrained and saved.")
+        logging.info("Multitask LSTM model retrained and saved.")
 
         # Save the scaler for consistency
         scaler_file = "scaler.pkl"
@@ -220,7 +238,7 @@ def train_lstm_model():
         logging.info("Scaler saved for consistency.")
     except Exception as e:
         logging.error(f"Error in train_lstm_model: {str(e)}")
-
+        
 # scaler startup before first prediction 
 def initialize_model_and_scaler():
     """
