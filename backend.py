@@ -259,7 +259,6 @@ def initialize_model_and_scaler():
         logging.warning("Scaler file not found. Model might need retraining.")
         scaler = MinMaxScaler(feature_range=(0, 1))  # Initialize a default scaler
 
-# Function to fetch block data and log to Google Sheets
 # Function to fetch block data, make predictions, and log to Google Sheets
 def fetch_and_log_block_data():
     try:
@@ -272,42 +271,55 @@ def fetch_and_log_block_data():
             logging.error("Failed to fetch block data.")
             return
 
-        # Fetch block hash and extract the last digit
+        # Fetch block hash
         block_hash = get_block_hash_by_height(block_height)
+        if block_hash is None:
+            logging.error("Failed to fetch block hash.")
+            return
+
+        # Extract the last digit from the block hash
         last_digit = extract_last_numerical_digit(block_hash)
         if last_digit is None:
             logging.error("Failed to extract last digit from block hash.")
             return
 
-        # Log block data (without block hash) to Google Sheets
-        timestamp = datetime.now().isoformat()
-        sheet.append_row([timestamp, block_height, last_digit])
-        logging.info(f"Logged block data: {timestamp}, {block_height}, {last_digit}")
-
-        # Fetch data from Google Sheets for prediction
+        # Fetch data from Google Sheets to prepare input for prediction
         data = pd.DataFrame(sheet.get_all_records())
-
-        # Check if there’s enough data for prediction
         if len(data) < SEQUENCE_LENGTH:
             logging.warning("Not enough data to make predictions.")
             return
 
-        # Prepare input data for prediction
+        # Prepare the input data (last sequence of digits)
         input_data = np.array(data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values)
-        predicted_digit, confidence = predict_next_digit(input_data)
 
-        # Append prediction and confidence to Google Sheets
-        sheet.append_row([timestamp, block_height, last_digit, predicted_digit, f"{confidence:.2%}"])
-        logging.info("Appended prediction data to Google Sheets.")
+        # Get prediction and pattern
+        predicted_digit, confidence, predicted_pattern = predict_next_digit_with_pattern(input_data)
 
-        # Update shared state (thread-safe)
-        with state_lock:
-            shared_state["current_block_height"] = block_height
-            shared_state["current_last_digit"] = last_digit
-            shared_state["latest_prediction"] = {
-                "digit": predicted_digit,
-                "confidence": f"{confidence * 100:.2f}%",
-            }
+        if predicted_digit is not None:
+            # Prepare the data row to append
+            timestamp = datetime.now().isoformat()
+            data_to_send = [
+                timestamp, 
+                block_height, 
+                last_digit, 
+                predicted_digit, 
+                f"{confidence:.2%}", 
+                predicted_pattern
+            ]
+
+            # Append prediction to Google Sheets
+            sheet.append_row(data_to_send)
+
+            logging.info(f"Appended prediction and pattern to Google Sheets: {data_to_send}")
+
+            # Update shared state (thread-safe)
+            with state_lock:
+                shared_state["current_block_height"] = block_height
+                shared_state["current_last_digit"] = last_digit
+                shared_state["latest_prediction"] = {
+                    "digit": predicted_digit,
+                    "confidence": f"{confidence * 100:.2f}%",
+                }
 
     except Exception as e:
         logging.error(f"Error in fetch_and_log_block_data: {str(e)}")
