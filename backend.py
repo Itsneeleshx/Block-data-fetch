@@ -277,8 +277,15 @@ def fetch_and_log_block_data():
             logging.error("Failed to fetch block hash.")
             return
 
-        # Log last digit to Google Sheets
-        sheet.append_row([datetime.now().isoformat(), block_height, last_digit])
+        # Extract the last digit
+        last_digit = extract_last_numerical_digit(block_hash)
+        if last_digit is None:
+            logging.error("Failed to extract last numerical digit.")
+            return
+
+        # Log to Google Sheets
+        timestamp = datetime.now().isoformat()
+        sheet.append_row([timestamp, block_height, last_digit])
 
         logging.info(f"Block height: {block_height}, Block hash: {block_hash}, Last digit: {last_digit}")
 
@@ -290,14 +297,14 @@ def fetch_and_log_block_data():
             logging.warning("Not enough data to make predictions.")
             return None, None
 
-        # Prepare the input data (example: last digit sequence from the Google Sheet)
+        # Prepare the input data
         input_data = np.array(data['Last Digit'].iloc[-SEQUENCE_LENGTH:].values)
 
-        # Call the function with the required argument
-        predicted_digit, confidence = predict_next_digit(input_data)
+        # Call the function to predict the next digit
+        predicted_digit, confidence, predicted_pattern = predict_next_digit_with_pattern(input_data)
 
         # Log the prediction
-        logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}")
+        logging.info(f"Predicted digit: {predicted_digit}, Confidence: {confidence:.2%}, Pattern: {predicted_pattern}")
 
         # Update shared state (thread-safe)
         with state_lock:
@@ -306,12 +313,12 @@ def fetch_and_log_block_data():
             shared_state["latest_prediction"] = {
                 "digit": predicted_digit,
                 "confidence": f"{confidence * 100:.2f}%",
+                "pattern": predicted_pattern,
             }
 
     except Exception as e:
         logging.error(f"Error in fetch_and_log_block_data: {str(e)}")
-
-
+        
 # Background task for periodic updates
 def background_task():
     while True:
